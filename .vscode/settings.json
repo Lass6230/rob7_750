@@ -1,0 +1,16 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "/home/lass6230/github/rob6_mobilebase/install/opencv_detector/lib/python3.8/site-packages",
+        "/home/lass6230/github/rob6_mobilebase/install/crust_msgs/lib/python3.8/site-packages",
+        "/home/lass6230/github/rob6_mobilebase/install/course_program/lib/python3.8/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "/home/lass6230/github/rob6_mobilebase/install/opencv_detector/lib/python3.8/site-packages",
+        "/home/lass6230/github/rob6_mobilebase/install/crust_msgs/lib/python3.8/site-packages",
+        "/home/lass6230/github/rob6_mobilebase/install/course_program/lib/python3.8/site-packages"
+    ]
+}
