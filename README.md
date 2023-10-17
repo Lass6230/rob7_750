@@ -8,6 +8,7 @@ Rob 7 group 750 semester project
     sudo apt install ros-humble-joint-state-publisher-gui ros-humble-xacro
     cd rob7_750/src
     git clone -b humble https://github.com/MASKOR/Spot-ROS2.git src/
+    cd ..
     colcon build --symlink-install
 
 ## In spot_driver spot_login.yaml
