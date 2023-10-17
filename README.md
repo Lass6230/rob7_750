@@ -10,7 +10,7 @@ Rob 7 group 750 semester project
     git clone -b humble https://github.com/MASKOR/Spot-ROS2.git src/
     colcon build --symlink-install
 
-## In spot_login.yaml
+## In spot_driver spot_login.yaml
     username: "admin"
     password: "mt9pe6pa0rm5"
     hostname: "192.168.80.3"
