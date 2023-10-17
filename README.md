@@ -30,5 +30,6 @@ Rob 7 group 750 semester project
     auto_stand: True
     deadzone: 0.05
     estop_timeout: 9.0
-
+## Launch Driver
+    ros2 launch spot_rob750 spot_launch.py
 Spot_driver: https://github.com/bdaiinstitute/spot_ros2
