@@ -44,6 +44,6 @@ Rob 7 group 750 semester project
 
 ## Dont use estop hard
 
-https://github.com/Lass6230/spot_ros2.git
+git clone -b humble https://github.com/Lass6230/spot_ros2.git
 
 Spot_driver: https://github.com/bdaiinstitute/spot_ros2
