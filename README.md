@@ -7,7 +7,8 @@ Rob 7 group 750 semester project
     pip3 install bosdyn-client bosdyn-mission bosdyn-api bosdyn-core
     sudo apt install ros-humble-joint-state-publisher-gui ros-humble-xacro
     cd rob7_750/src
-    git clone -b humble https://github.com/MASKOR/Spot-ROS2.git src/
+1.     git clone -b humble https://github.com/MASKOR/Spot-ROS2.git src/
+    git clone -b humble https://github.com/Lass6230/spot_ros2.git
     cd ..
     colcon build --symlink-install
 
@@ -44,6 +45,6 @@ Rob 7 group 750 semester project
 
 ## Dont use estop hard
 
-git clone -b humble https://github.com/Lass6230/spot_ros2.git
+
 
 Spot_driver: https://github.com/bdaiinstitute/spot_ros2
