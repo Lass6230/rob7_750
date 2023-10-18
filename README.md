@@ -32,4 +32,16 @@ Rob 7 group 750 semester project
     estop_timeout: 9.0
 ## Launch Driver
     ros2 launch spot_rob750 spot_launch.py
+
+
+## Example on service command
+    ros2 service call /stand std_srvs/srv/Trigger
+    ros2 service call /sit std_srvs/srv/Trigger
+    ros2 service call /power_on std_srvs/srv/Trigger
+    ros2 service call /power_off std_srvs/srv/Trigger
+    ros2 service call /estop/gentle std_srvs/srv/Trigger
+    ros2 service call /estop/release std_srvs/srv/Trigger
+
+## Dont use estop hard
+
 Spot_driver: https://github.com/bdaiinstitute/spot_ros2
