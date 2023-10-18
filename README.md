@@ -47,4 +47,8 @@ Rob 7 group 750 semester project
 
 
 
+sudo apt install ros-humble-pointcloud-to-laserscan
+
+
+
 Spot_driver: https://github.com/bdaiinstitute/spot_ros2
