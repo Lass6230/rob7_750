@@ -22,7 +22,7 @@ def generate_launch_description():
 	# Spot driver
 	if 1:
 		spot_config = os.path.join(get_package_share_directory('spot_rob750'), 'config/spot_config.yaml')
-		spot_launch = os.path.join(get_package_share_directory('spot_driver'), 'launch', "spot_driver.launch.py")
+		spot_launch = os.path.join(get_package_share_directory('spot_driver'), 'launch', "spot_driver_2.launch.py")
 		ld.add_action(IncludeLaunchDescription(PythonLaunchDescriptionSource(spot_launch),
 		                                       launch_arguments={"config_file": spot_config}.items()))
 
