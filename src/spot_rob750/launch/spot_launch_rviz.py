@@ -16,7 +16,14 @@ def generate_launch_description():
 
 
 
-	# Nav2
+	if 1:
+		ld.add_action(Node(
+			package="tf2_ros",
+			executable="static_transform_publisher",
+			name="static_transform_publisher",
+			output="log",
+			arguments=["0.0", "0.0", "0.0", "0.0", "0.0", "0.0", "front_rail", "cloud"],
+		))
 	
 
 	# Spot driver
