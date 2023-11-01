@@ -101,9 +101,12 @@ class Oracle:
                     (np.log(1. / self.delta))**0.5 * self.sigma / self.n**0.5 * np.ones(self.m) - self.nu * np.ones(self.m)
         else:
             self.objective_grad = self.df + np.random.normal(0, self.hat_sigma / self.n**0.5, self.d)
+            #print("objective_grad from oracle", self.objective_grad)
             self.constraints_grad = self.dh + np.random.normal(0, self.hat_sigma / self.n**0.5, (self.m, self.d))
+            #print("constraints_grad from oracle", self.constraints_grad)
             self.alphas = - self.constraints_values - \
                 (np.log(1. / self.delta))**0.5 * self.sigma / self.n**0.5 / 2. * np.ones(self.m)
+            #print("alphas from oracle", self.alphas)
 
 
 @dataclass
@@ -163,8 +166,11 @@ class SafeLogBarrierOptimizer:
             alphas_reg[i] = max(self.reg, alphas[i])
 
         M2 = self.M0 + 2 * self.eta * np.sum(self.Ms / alphas_reg) + 4 * self.eta * np.sum(L_dirs**2 / alphas_reg**2) 
+        #print("M2", M2)
         gamma = min(1. / step_norm * np.min(alphas / ( 2 * L_dirs +  alphas_reg**0.5 * self.Ms**0.5)), 
                     1. / M2 )
+        
+        #print("gamma", gamma)
         return gamma
 
     def dB_estimator(self):
@@ -173,9 +179,13 @@ class SafeLogBarrierOptimizer:
         """
         alphas = self.oracle.alphas
         jacobian = self.oracle.constraints_grad
+        #print("jacobian", jacobian)
         df_e = self.oracle.objective_grad
+        #print("df_e", df_e)
         denominators = 1. / np.maximum(np.ones(self.m) * self.reg, alphas)
+        #print("denominators", denominators)
         dB = df_e + self.eta * jacobian.T.dot(denominators)
+        #print("dB", dB)
         return dB
     
     def barrier_SGD(self):
@@ -184,17 +194,21 @@ class SafeLogBarrierOptimizer:
         """
         self.xs = []
         xt = self.x0
+        #print("im,xt",xt)
         Tk = 0    
         for t in range(self.T):
             self.oracle.sample(xt)  
+            
             self.step = self.dB_estimator()
             step_norm = np.linalg.norm(self.step)
+            #print("step_norm", step_norm)
             gamma = self.compute_gamma(t)
 
             if step_norm < self.eta and self.no_break == False:
                 break
 
             xt = xt - gamma * self.step
+            #print("xt", xt)
             Tk += 1
             if t == 0:
                 x_trajectory = np.array([xt])
@@ -208,6 +222,12 @@ class SafeLogBarrierOptimizer:
                 errors_trajectory = np.hstack((errors_trajectory, self.f(xt) - self.f(self.x_opt)))
                 constraints_trajectory = np.hstack((constraints_trajectory, np.max(self.h(xt))))
                 worst_constraint = max(worst_constraint, np.max(self.h(xt)))
+            
+            #print("x_trajectory", x_trajectory)
+            #print("gammea_trajectory", gamma_trajectory)
+            #print("errors_trajectory", errors_trajectory)
+            #print("constraints_trajectory", constraints_trajectory)
+            #print("worst_constraint", worst_constraint)    
 
             self.xs.append(xt)
             x_last = xt
@@ -227,6 +247,11 @@ class SafeLogBarrierOptimizer:
         self.eta = self.eta0
         x0 = self.x0
         x_prev = x0
+        print("f_opt in log_barrier_decay", f_opt)   
+        print("x_long_trajectory in log_barrier_decay", x0)
+        print("errors_long_trajectory in log_barrier_decay", errors_long_trajectory)
+        print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
+        print("T_total in log_barrier_decay", T_total)
         
         for k in range(self.K):
                 
@@ -245,8 +270,12 @@ class SafeLogBarrierOptimizer:
         Obtains random safe initial point
         """
         x0_det = self.x00
-        for i in range(1000 * self.d):
+        d = self.d
+        
+        
+        for i in range(1000 * d):
             x0 =  x0_det + np.random.uniform(low=-1, high=1, size=self.d) * self.init_std
+            #print(self.h(x0))
             if (self.h(x0) < - self.beta).all():
                 break
         return x0
@@ -257,7 +286,12 @@ class SafeLogBarrierOptimizer:
         
         Outputs: x_last, 
         Updates: errors_total, constraints_total, xs
+
+        
+        
         """
+
+        #print(self.d)
         self.beta = self.eta0
         if self.random_init:
             self.x0 = self.get_random_initial_point()
@@ -273,7 +307,7 @@ class SafeLogBarrierOptimizer:
                             T_total, 
                             x_last) = self.log_barrier_decaying_eta()
         self.runtimes = [time() - time_0]
-
+        
         x_total = []
         errors_total = []
         constraints_total = []

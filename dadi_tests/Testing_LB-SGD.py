@@ -24,7 +24,7 @@ def update_plot(ax, robot_pos, obstacle, robot_radius):
     ax.legend()
 
 d = 2
-m = 2 * d
+m = 2
 experiments_num = 10
 n = int(d / 2)
 n = 1
@@ -37,21 +37,49 @@ T = 3
 sigma = 0.001
 problem_name = 'QP'
 L = 0.25    
+obs_rad = 10
 
-"""    # Define potential field functions f and h
-def f(x, goal):
-    return -k1 * (x - goal)
+ #Initialize LB-SGD optimizer
+robot_start = (5., 5.)
+robot_goal = (90., 90.)
+obstacle = [(50., 50., 10.)]
+sim_time = 30.
+step_time = 0.1
+N = int(sim_time / step_time)
+current_time = 0.
+robot_pos = np.array(robot_start)
+# Constants for potential fields
+k1 = 5.0  # Gain for goal attraction
+k2 = 2.0  # Gain for obstacle repulsion
+step_size = 1.0  # Control the step size
 
-def h(x, obstacles, obstacle_force=None):
-    if obstacle_force is None:
-        obstacle_force = np.zeros(2)
-    for obs in obstacles:
+
+# Initialize the grid map
+grid_size = (100, 100)
+obstacle_cost = 1
+#obstacle_force = 2
+fig, ax = plt.subplots()
+G = nx.grid_2d_graph(*grid_size)
+diagonal_cost = 1
+robot_radius = 5
+
+moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1, -1, diagonal_cost), (-1, 1, diagonal_cost), (-1, -1, diagonal_cost)]
+
+   # Define potential field functions f and h
+def f(x, robot_goal=robot_goal):
+    return -k1 * (x - robot_goal)
+
+
+def h(x):
+    obstacle_force = np.zeros(2)
+    for obs in obstacle:
         diff = x - obs[:2]
         if np.linalg.norm(diff) <= obs[2]:
             obstacle_force += k2 * (1 / np.linalg.norm(diff) - 1 / obs[2]) * diff
-    return obstacle_force"""
+            
+    return obstacle_force
 
-def h(x):
+"""def h(x):
     d = np.size(x)
     A = np.vstack((np.eye(d),-np.eye(d)))
     b = np.ones(2 * d) / d**0.5
@@ -60,16 +88,16 @@ def h(x):
 def f(x):    
     d = np.size(x)
     xx = 2.0 * np.ones(d)
-    return np.linalg.norm(x - xx, 2)**2 / 4.0 / d
+    return np.linalg.norm(x - xx, 2)**2 / 4.0 / d"""
 
 
 
-def run_exp_LB_SGD( f, h, d, m,
+def run_exp_LB_SGD(f, h, d, m,
                    experiments_num = 5, 
                    n_iters = 100, 
                    n = 1, 
-                   M0 = 0.5 / 2.0, 
-                   Ms = 0.0 * np.ones(4), 
+                   M0 = 0.5 / 2., 
+                   Ms = 0. * np.ones(4), 
                    x00 = np.zeros(2), 
                    x_opt =  np.ones(2) / 2**0.5, 
                    sigma = 0.001, nu = 0.01, 
@@ -77,6 +105,7 @@ def run_exp_LB_SGD( f, h, d, m,
                    T = 3, 
                    factor = 0.85, 
                    init_std = 0.1,
+                   delta = 0.01,
                    problem_name = ''):
 
     my_oracle = LB.Oracle(
@@ -84,7 +113,7 @@ def run_exp_LB_SGD( f, h, d, m,
         h = h, 
         sigma = sigma,
         hat_sigma = 0.01,
-        delta = 0.01,
+        delta = delta,
         m = m,
         d = d,
         nu = nu,
@@ -111,11 +140,11 @@ def run_exp_LB_SGD( f, h, d, m,
         T = T,
         K = int(n_iters / T / 2. / n),
         experiments_num = experiments_num,
-        mu = 0.0,
+        mu = 0.,
         convex = True,
         random_init = True,
         no_break = True)
-    
+
     opt.run_average_experiment()
     
     for i in range(experiments_num):
@@ -127,87 +156,61 @@ def run_exp_LB_SGD( f, h, d, m,
     runtimes = opt.runtimes
     runtimes = np.array(runtimes)
     
-    #with open('../runs/LB_SGD_' + problem_name + '_d' + str(d)  + '.npy', 'wb') as file:
-    #    np.save(file, errors)
-    #    np.save(file, constraints)
-    #    np.save(file, runtimes)
-
+    """    with open('../runs/LB_SGD_' + problem_name + '_d' + str(d)  + '.npy', 'wb') as file:
+        np.save(file, errors)
+        np.save(file, constraints)
+        np.save(file, runtimes)
+     """
     return opt
     
-""" def update(self, x, obstacle):
+def update(self, x, obstacle):
         f_force = self.f(x, self.x_opt)
         h_force = self.h(x, obstacle)
         total_force =  f_force + h_force
         x = x - self.eta * total_force
         return x
-"""
+
+
+def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, optimizer, update_plot):
+    current_time = 0
+    while current_time < sim_time:
+        # Calculate the total force on the robot
+        total_force = x_opt 
+        print("Current time: ", total_force)
+        # Update the robot's position using the total force
+        robot_pos = robot_pos + step_size * total_force
+        
+        # Check if the robot has reached the goal
+        if np.linalg.norm(robot_pos - robot_goal) < robot_radius:
+            print("Robot reached the goal!")
+            break
+        
+        current_time += step_time
+
+        update_plot(ax, robot_pos, obstacle, robot_radius)
+        plt.pause(0.01)  # Add a slight delay to see the animation
+    return robot_pos
 
 
 
- #Initialize LB-SGD optimizer
-robot_start = (5, 5)
-robot_goal = (90, 90)
-obstacle = [(50, 50, 10)]
-sim_time = 30
-step_time = 0.1
-N = int(sim_time / step_time)
-current_time = 0
-robot_pos = np.array(robot_start)
-# Constants for potential fields
-k1 = 5.0  # Gain for goal attraction
-k2 = 2.0  # Gain for obstacle repulsion
-step_size = 1.0  # Control the step size
+plplp= run_exp_LB_SGD(f, h, d, m,
+               experiments_num = experiments_num, 
+               n_iters = n_iters,
+               n = n, 
+               M0 = M0, 
+               Ms = Ms, 
+               x00 = x00, 
+               init_std = 0.,
+               eta0 = 0.1,
+               delta = 0.01,
+               nu = 0.01, 
+               factor = 0.7,
+               T = 7,
+               x_opt = x_opt, 
+               sigma = sigma,
+               problem_name = problem_name)
 
 
-# Initialize the grid map
-grid_size = (100, 100)
-obstacle_cost = 1
-fig, ax = plt.subplots()
-G = nx.grid_2d_graph(*grid_size)
-diagonal_cost = 1
-robot_radius = 5
-
-moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1, -1, diagonal_cost), (-1, 1, diagonal_cost), (-1, -1, diagonal_cost)]
-
-
-plplp = run_exp_LB_SGD(f, h, d, m,
-            experiments_num = experiments_num, 
-            n_iters = n_iters,
-            n = 1, 
-            M0 = M0, 
-            Ms = Ms, 
-            x00 = x00, 
-            init_std = 0.,
-            eta0 = 0.02, 
-            factor = 0.7,
-            nu = 0.01,
-            T = 7,
-            x_opt = x_opt, 
-            sigma = sigma,
-            problem_name = problem_name)
-
-
-print(plplp)
-
-"""while current_time < sim_time:
-
-
-    
-    # Calculate the total force on the robot
-    total_force = opt.update(robot_pos, obstacle)
-    print("Current time: ", total_force)
-    # Update the robot's position using the total force
-    robot_pos = robot_pos + step_size * total_force
-    
-    # Check if the robot has reached the goal
-    if np.linalg.norm(robot_pos - robot_goal) < robot_radius:
-        print("Robot reached the goal!")
-        break
-    
-    current_time += step_time
-
-    update_plot(ax, robot_pos, obstacle, robot_radius)
-    plt.pause(0.01)  # Add a slight delay to see the animation
-
-# Display the result
-plt.show()"""
+# Then you can call the function like this:
+robot_pos = run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, plplp, update_plot)# Display the result
+plt.show()
