@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.animation as animation
 import LB_optimizer as LB
 
+
+
 def update_plot(ax, robot_pos, obstacle, robot_radius):
     ax.clear()
     ax.set_aspect('equal')
@@ -30,7 +32,7 @@ n = int(d / 2)
 n = 1
 n_iters = d * 60
 x_opt = np.ones(d) / d**0.5
-x00 = np.zeros(d)
+x00 = np.array([5, 5])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
 T = 3
@@ -40,8 +42,8 @@ L = 0.25
 obs_rad = 10
 
  #Initialize LB-SGD optimizer
-robot_start = (5., 5.)
-robot_goal = (90., 90.)
+robot_start = ([5., 5.])
+robot_goal = ([90., 90.])
 obstacle = [(50., 50., 10.)]
 sim_time = 30.
 step_time = 0.1
@@ -49,7 +51,7 @@ N = int(sim_time / step_time)
 current_time = 0.
 robot_pos = np.array(robot_start)
 # Constants for potential fields
-k1 = 5.0  # Gain for goal attraction
+k1 = 100.0  # Gain for goal attraction
 k2 = 2.0  # Gain for obstacle repulsion
 step_size = 1.0  # Control the step size
 
@@ -63,10 +65,14 @@ G = nx.grid_2d_graph(*grid_size)
 diagonal_cost = 1
 robot_radius = 5
 
+
+#dymanics of DD robot 
 moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1, -1, diagonal_cost), (-1, 1, diagonal_cost), (-1, -1, diagonal_cost)]
 
    # Define potential field functions f and h
 def f(x, robot_goal=robot_goal):
+    moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1, -1, diagonal_cost), (-1, 1, diagonal_cost), (-1, -1, diagonal_cost)]
+
     return -k1 * (x - robot_goal)
 
 
@@ -98,7 +104,7 @@ def run_exp_LB_SGD(f, h, d, m,
                    n = 1, 
                    M0 = 0.5 / 2., 
                    Ms = 0. * np.ones(4), 
-                   x00 = np.zeros(2), 
+                   x00 = robot_start, 
                    x_opt =  np.ones(2) / 2**0.5, 
                    sigma = 0.001, nu = 0.01, 
                    eta0 = 0.05, 
@@ -199,8 +205,8 @@ plplp= run_exp_LB_SGD(f, h, d, m,
                n = n, 
                M0 = M0, 
                Ms = Ms, 
-               x00 = x00, 
-               init_std = 0.,
+               x00 = robot_start, 
+               init_std = 0.5,
                eta0 = 0.1,
                delta = 0.01,
                nu = 0.01, 
