@@ -202,14 +202,17 @@ class SafeLogBarrierOptimizer:
             
             self.step = self.dB_estimator()
             step_norm = np.linalg.norm(self.step)
-            print("step_norm", step_norm)
+            #print("step_norm", step_norm)
             gamma = self.compute_gamma(t)
 
             if step_norm < self.eta and self.no_break == False:
                 break
 
+            #print("gamma", gamma)
+            #print("step", self.step)
+            #print("xt", xt)    
             xt = xt - gamma * self.step
-            #print("xt", xt)
+            #print("xt after calc", xt)
             Tk += 1
             if t == 0:
                 x_trajectory = np.array([xt])
@@ -224,7 +227,7 @@ class SafeLogBarrierOptimizer:
                 constraints_trajectory = np.hstack((constraints_trajectory, np.max(self.h(xt))))
                 worst_constraint = max(worst_constraint, np.max(self.h(xt)))
             
-            #print("x_trajectory", x_trajectory)
+            #print("x_trajectory barrier", x_trajectory)
             #print("gammea_trajectory", gamma_trajectory)
             #print("errors_trajectory", errors_trajectory)
             #print("constraints_trajectory", constraints_trajectory)
@@ -252,13 +255,13 @@ class SafeLogBarrierOptimizer:
         self.eta = self.eta0
         x0 = self.x0
         x_prev = x0
-        print(self.f(self.x0))
+        """print(self.f(self.x0))
         print("f_opt in log_barrier_decay", f_opt)   
         print("x_long_trajectory in log_barrier_decay", x0)
         print("errors_long_trajectory in log_barrier_decay", errors_long_trajectory)
         print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
         print("T_total in log_barrier_decay", T_total)
-        
+        """
         
         for k in range(self.K):
                 
@@ -348,5 +351,6 @@ class SafeLogBarrierOptimizer:
         self.x_total = x_total
         self.errors_total = errors_total
         self.constraints_total = constraints_total
+        print("in function", x_last)
         print('LB_SGD runs finished')
         return x_last

@@ -40,6 +40,11 @@ sigma = 0.001
 problem_name = 'QP'
 L = 0.25    
 obs_rad = 10
+nu = 0.1 
+eta0 = 0.5 
+factor = 0.7
+init_std = 0.5
+delta = 0.01
 
  #Initialize LB-SGD optimizer
 robot_start = ([5., 5.])
@@ -51,7 +56,7 @@ N = int(sim_time / step_time)
 current_time = 0.
 robot_pos = np.array(robot_start)
 # Constants for potential fields
-k1 = 100.0  # Gain for goal attraction
+k1 = 1.0  # Gain for goal attraction
 k2 = 2.0  # Gain for obstacle repulsion
 step_size = 1.0  # Control the step size
 
@@ -72,7 +77,7 @@ moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1
    # Define potential field functions f and h
 def f(x, robot_goal=robot_goal):
     moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1, -1, diagonal_cost), (-1, 1, diagonal_cost), (-1, -1, diagonal_cost)]
-
+    
     return -k1 * (x - robot_goal)
 
 
@@ -99,20 +104,21 @@ def f(x):
 
 
 def run_exp_LB_SGD(f, h, d, m,
-                   experiments_num = 5, 
-                   n_iters = 100, 
-                   n = 1, 
-                   M0 = 0.5 / 2., 
-                   Ms = 0. * np.ones(4), 
-                   x00 = robot_start, 
-                   x_opt =  np.ones(2) / 2**0.5, 
-                   sigma = 0.001, nu = 0.01, 
-                   eta0 = 0.05, 
-                   T = 3, 
-                   factor = 0.85, 
-                   init_std = 0.1,
-                   delta = 0.01,
-                   problem_name = ''):
+                   experiments_num = experiments_num, 
+                   n_iters = n_iters, 
+                   n = n, 
+                   M0 = M0, 
+                   Ms = Ms, 
+                   x00 = x00, 
+                   x_opt =  x_opt, 
+                   sigma = sigma, 
+                   nu = nu, 
+                   eta0 = eta0, 
+                   T = T, 
+                   factor = factor, 
+                   init_std = init_std,
+                   delta = delta,
+                   problem_name = problem_name):
 
     my_oracle = LB.Oracle(
         f = f,
@@ -140,7 +146,7 @@ def run_exp_LB_SGD(f, h, d, m,
         h = h,
         d = d,
         m = m,
-        reg = 0.0001,
+        reg = 0.1,
         x_opt = x_opt,
         factor = factor,
         T = T,
@@ -149,7 +155,7 @@ def run_exp_LB_SGD(f, h, d, m,
         mu = 0.,
         convex = True,
         random_init = True,
-        no_break = True)
+        no_break = False)
 
     opt.run_average_experiment()
     
@@ -167,6 +173,8 @@ def run_exp_LB_SGD(f, h, d, m,
         np.save(file, constraints)
         np.save(file, runtimes)
      """
+    
+    #print(opt)
     return opt
     
 def update(self, x, obstacle):
@@ -181,15 +189,12 @@ def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obs
     current_time = 0
     while current_time < sim_time:
         # Calculate the total force on the robot
-        total_force = x_opt 
+        total_force = x_opt
         print("Current time: ", total_force)
         # Update the robot's position using the total force
-        robot_pos = robot_pos + step_size * total_force
+        robot_pos = robot_pos + total_force
         
-        # Check if the robot has reached the goal
-        if np.linalg.norm(robot_pos - robot_goal) < robot_radius:
-            print("Robot reached the goal!")
-            break
+
         
         current_time += step_time
 
@@ -200,23 +205,23 @@ def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obs
 
 
 plplp= run_exp_LB_SGD(f, h, d, m,
-               experiments_num = experiments_num, 
-               n_iters = n_iters,
-               n = n, 
-               M0 = M0, 
-               Ms = Ms, 
-               x00 = robot_start, 
-               init_std = 0.5,
-               eta0 = 0.1,
-               delta = 0.01,
-               nu = 0.01, 
-               factor = 0.7,
-               T = 7,
-               x_opt = x_opt, 
-               sigma = sigma,
-               problem_name = problem_name)
+                   experiments_num = experiments_num, 
+                   n_iters = n_iters, 
+                   n = n, 
+                   M0 = M0, 
+                   Ms = Ms, 
+                   x00 = x00, 
+                   x_opt =  x_opt, 
+                   sigma = sigma, 
+                   nu = nu, 
+                   eta0 = eta0, 
+                   T = T, 
+                   factor = factor, 
+                   init_std = init_std,
+                   delta = delta,
+                   problem_name = problem_name)
 
-
+#print("after_func",plplp)
 # Then you can call the function like this:
 robot_pos = run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, plplp, update_plot)# Display the result
 plt.show()
