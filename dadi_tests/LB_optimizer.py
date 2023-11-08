@@ -7,11 +7,11 @@ from cvxopt import matrix, spmatrix
 from cvxopt.solvers import options, qp, lp, conelp, coneqp
 from scipy.stats import norm, chi2
 
-import matplotlib.pyplot as plt
-import matplotlib.lines as line
-from matplotlib import rc
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-rc('text', usetex=True)
+# import matplotlib.pyplot as plt
+# import matplotlib.lines as line
+# from matplotlib import rc
+# rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+# rc('text', usetex=True)
 import numdifftools as nd
 from time import time
 
@@ -130,7 +130,7 @@ class SafeLogBarrierOptimizer:
     d: float = None
     m: float = None
     reg: float = None
-    x_opt: float = None
+    # x_opt: float = None
     T: int = None
     K: int = None
     experiments_num: int = None
@@ -214,13 +214,13 @@ class SafeLogBarrierOptimizer:
             if t == 0:
                 x_trajectory = np.array([xt])
                 gamma_trajectory = np.array([gamma])
-                errors_trajectory = self.f(xt) - self.f(self.x_opt)
+                # errors_trajectory = self.f(xt) - self.f(self.x_opt)
                 constraints_trajectory = np.max(self.h(xt))
                 worst_constraint = np.max(self.h(xt))
             else:
                 x_trajectory = np.vstack((x_trajectory, xt))
                 gamma_trajectory = np.vstack((gamma_trajectory, gamma))
-                errors_trajectory = np.hstack((errors_trajectory, self.f(xt) - self.f(self.x_opt)))
+                # errors_trajectory = np.hstack((errors_trajectory, self.f(xt) - self.f(self.x_opt)))
                 constraints_trajectory = np.hstack((constraints_trajectory, np.max(self.h(xt))))
                 worst_constraint = max(worst_constraint, np.max(self.h(xt)))
             
@@ -233,7 +233,7 @@ class SafeLogBarrierOptimizer:
             self.xs.append(xt)
             x_last = xt
     
-        return x_trajectory, gamma_trajectory, errors_trajectory, constraints_trajectory, x_last, Tk
+        return x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
           
     def log_barrier_decaying_eta(self):
         """
@@ -242,10 +242,10 @@ class SafeLogBarrierOptimizer:
 
         """
         
-        print("x_opt in log_barrier_decay", self.x_opt)
-        f_opt = self.f(self.x_opt)
+        # print("x_opt in log_barrier_decay", self.x_opt)
+        # f_opt = self.f(self.x_opt)
         x_long_trajectory = self.x0
-        errors_long_trajectory = self.f(self.x0) - f_opt
+        # errors_long_trajectory = self.f(self.x0) - f_opt
         constraints_long_trajectory = np.max(self.h(self.x0))    
         T_total = 0
         
@@ -253,17 +253,17 @@ class SafeLogBarrierOptimizer:
         x0 = self.x0
         x_prev = x0
         print(self.f(self.x0))
-        print("f_opt in log_barrier_decay", f_opt)   
+        # print("f_opt in log_barrier_decay", f_opt)   
         print("x_long_trajectory in log_barrier_decay", x0)
-        print("errors_long_trajectory in log_barrier_decay", errors_long_trajectory)
+        # print("errors_long_trajectory in log_barrier_decay", errors_long_trajectory)
         print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
         print("T_total in log_barrier_decay", T_total)
         
         
         for k in range(self.K):
                 
-            x_traj_k, gamma_traj_k, errors_traj_k, constraints_traj_k, x_last_k, T_k = self.barrier_SGD()
-            errors_long_trajectory = np.hstack((errors_long_trajectory, errors_traj_k))
+            x_traj_k, gamma_traj_k, constraints_traj_k, x_last_k, T_k = self.barrier_SGD()
+            # errors_long_trajectory = np.hstack((errors_long_trajectory, errors_traj_k))
             constraints_long_trajectory = np.hstack((constraints_long_trajectory, constraints_traj_k))
             x_long_trajectory = np.vstack((x_long_trajectory, x_traj_k))
             T_total = T_total + T_k
@@ -277,7 +277,7 @@ class SafeLogBarrierOptimizer:
             print("x_last_k", x_last_k)
             print("T_k", T_k)
             """
-        return x_long_trajectory, errors_long_trajectory, constraints_long_trajectory, T_total, x_last_k
+        return x_long_trajectory,  constraints_long_trajectory, T_total, x_last_k # errors_long_trajectory,
 
     def get_random_initial_point(self):
         """
@@ -313,11 +313,10 @@ class SafeLogBarrierOptimizer:
             self.x0 = self.x00
 
         f_0 = self.f(self.x0)
-        f_opt = self.f(self.x_opt)
+        # f_opt = self.f(self.x_opt)
         
         time_0 = time() 
-        (x_long_trajectory, errors_long_trajectory, 
-                            constraints_long_trajectory, 
+        (x_long_trajectory, constraints_long_trajectory, 
                             T_total, 
                             x_last) = self.log_barrier_decaying_eta()
         self.runtimes = [time() - time_0]
@@ -326,7 +325,7 @@ class SafeLogBarrierOptimizer:
         errors_total = []
         constraints_total = []
 
-        errors_total.append(errors_long_trajectory)
+        # errors_total.append(errors_long_trajectory)
         constraints_total.append(constraints_long_trajectory)
         #print("HEy, DADi LOOK HERERE",self.x0)
         for i in range(self.experiments_num - 1):
@@ -337,16 +336,16 @@ class SafeLogBarrierOptimizer:
                 self.x0 = self.x00
                 
             time_0 = time() 
-            (x_long_trajectory, errors_long_trajectory, 
-                                constraints_long_trajectory, 
+
+            (x_long_trajectory, constraints_long_trajectory, 
                                 T_total, 
                                 x_last) = self.log_barrier_decaying_eta()
             self.runtimes.append(time() - time_0)
             x_total.append(x_long_trajectory)
-            errors_total.append(errors_long_trajectory)
+            # errors_total.append(errors_long_trajectory)
             constraints_total.append(constraints_long_trajectory)
         self.x_total = x_total
-        self.errors_total = errors_total
+        # self.errors_total = errors_total
         self.constraints_total = constraints_total
         print('LB_SGD runs finished')
         return x_last

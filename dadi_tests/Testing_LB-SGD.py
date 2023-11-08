@@ -25,13 +25,13 @@ def update_plot(ax, robot_pos, obstacle, robot_radius):
     line, = ax.plot([], [], 'b-', label='Robot Path')
     ax.legend()
 
-d = 2
-m = 2
-experiments_num = 10
+d = 2   # is what?
+m = 2   # is what?
+experiments_num = 10 
 n = int(d / 2)
 n = 1
 n_iters = d * 60
-x_opt = np.ones(d) / d**0.5
+# x_opt = np.ones(d) / d**0.5
 x00 = np.array([5, 5])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
@@ -41,15 +41,22 @@ problem_name = 'QP'
 L = 0.25    
 obs_rad = 10
 
+nu = 0.1 
+eta0 = 0.5 
+factor = 0.7
+init_std = 0.5
+delta = 0.01
+
  #Initialize LB-SGD optimizer
 robot_start = ([5., 5.])
-robot_goal = ([90., 90.])
+robot_goal = ([90., 50.]) #([90., 90.])
 obstacle = [(50., 50., 10.)]
 sim_time = 30.
 step_time = 0.1
 N = int(sim_time / step_time)
 current_time = 0.
 robot_pos = np.array(robot_start)
+
 # Constants for potential fields
 k1 = 100.0  # Gain for goal attraction
 k2 = 2.0  # Gain for obstacle repulsion
@@ -99,20 +106,21 @@ def f(x):
 
 
 def run_exp_LB_SGD(f, h, d, m,
-                   experiments_num = 5, 
-                   n_iters = 100, 
-                   n = 1, 
-                   M0 = 0.5 / 2., 
-                   Ms = 0. * np.ones(4), 
+                   experiments_num = experiments_num, 
+                   n_iters = n_iters, 
+                   n = n, 
+                   M0 = M0,#0.5 / 2., 
+                   Ms = Ms,#0. * np.ones(4), 
                    x00 = robot_start, 
-                   x_opt =  np.ones(2) / 2**0.5, 
-                   sigma = 0.001, nu = 0.01, 
+                #    x_opt = x_opt, # np.ones(2) / 2**0.5, 
+                   sigma = sigma,#0.001, 
+                   nu = 0.01, #0.01, 
                    eta0 = 0.05, 
                    T = 3, 
                    factor = 0.85, 
                    init_std = 0.1,
                    delta = 0.01,
-                   problem_name = ''):
+                   problem_name = problem_name):
 
     my_oracle = LB.Oracle(
         f = f,
@@ -141,7 +149,7 @@ def run_exp_LB_SGD(f, h, d, m,
         d = d,
         m = m,
         reg = 0.0001,
-        x_opt = x_opt,
+        # x_opt = x_opt,
         factor = factor,
         T = T,
         K = int(n_iters / T / 2. / n),
@@ -150,14 +158,15 @@ def run_exp_LB_SGD(f, h, d, m,
         convex = True,
         random_init = True,
         no_break = True)
-
+    
     opt.run_average_experiment()
+   
     
     for i in range(experiments_num):
-        opt.errors_total[i] = np.repeat(opt.errors_total[i], 2 * n)
+        # opt.errors_total[i] = np.repeat(opt.errors_total[i], 2 * n)
         opt.constraints_total[i] = np.repeat(opt.constraints_total[i], 2 * n )
     
-    errors = opt.errors_total
+    # errors = opt.errors_total
     constraints = opt.constraints_total
     runtimes = opt.runtimes
     runtimes = np.array(runtimes)
@@ -181,7 +190,7 @@ def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obs
     current_time = 0
     while current_time < sim_time:
         # Calculate the total force on the robot
-        total_force = x_opt 
+        total_force = plplp.x_total 
         print("Current time: ", total_force)
         # Update the robot's position using the total force
         robot_pos = robot_pos + step_size * total_force
@@ -212,11 +221,13 @@ plplp= run_exp_LB_SGD(f, h, d, m,
                nu = 0.01, 
                factor = 0.7,
                T = 7,
-               x_opt = x_opt, 
+            #    x_opt = x_opt, 
                sigma = sigma,
                problem_name = problem_name)
 
+# plt.plot(plplp)
 
 # Then you can call the function like this:
+
 robot_pos = run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, plplp, update_plot)# Display the result
 plt.show()
