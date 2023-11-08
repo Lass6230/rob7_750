@@ -31,12 +31,12 @@ experiments_num = 10
 n = int(d / 2)
 n = 1
 n_iters = d * 60
-x_opt = np.ones(d) / d**0.5
-x00 = np.array([5, 5])
+x_opt = np.array([3,3])
+x00 = np.array([2, 2])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
 T = 3
-sigma = 0.001
+sigma = 0.0001
 problem_name = 'QP'
 L = 0.25    
 obs_rad = 10
@@ -56,7 +56,7 @@ N = int(sim_time / step_time)
 current_time = 0.
 robot_pos = np.array(robot_start)
 # Constants for potential fields
-k1 = 1.0  # Gain for goal attraction
+k1 = 1.0 # Gain for goal attraction
 k2 = 2.0  # Gain for obstacle repulsion
 step_size = 1.0  # Control the step size
 
@@ -64,7 +64,7 @@ step_size = 1.0  # Control the step size
 # Initialize the grid map
 grid_size = (100, 100)
 obstacle_cost = 1
-#obstacle_force = 2
+obstacle_force = 2
 fig, ax = plt.subplots()
 G = nx.grid_2d_graph(*grid_size)
 diagonal_cost = 1
@@ -75,10 +75,24 @@ robot_radius = 5
 moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1, -1, diagonal_cost), (-1, 1, diagonal_cost), (-1, -1, diagonal_cost)]
 
    # Define potential field functions f and h
-def f(x, robot_goal=robot_goal):
-    moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1, -1, diagonal_cost), (-1, 1, diagonal_cost), (-1, -1, diagonal_cost)]
+def f(x):
+    # Calculate the costs for each of the possible steps
+    step_costs = [
+        (x[0], x[1] + 1, 1),
+        (x[0], x[1] - 1, 1),
+        (x[0] + 1, x[1], 1),
+        (x[0] - 1, x[1], 1),
+        (x[0] + 1, x[1] + 1, diagonal_cost),
+        (x[0] + 1, x[1] - 1, diagonal_cost),
+        (x[0] - 1, x[1] + 1, diagonal_cost),
+        (x[0] - 1, x[1] - 1, diagonal_cost)
+    ]
+
+    # Calculate the distance to the robot goal for each step and find the closest one
+    closest_step = min(step_costs, key=lambda step: ((step[0] - robot_goal[0])**2 + (step[1] - robot_goal[1])**2)**0.5)
     
-    return -k1 * (x - robot_goal)
+    return -k1 * np.array([np.linalg.norm(closest_step[0] - robot_goal[0]), np.linalg.norm(closest_step[1] - robot_goal[1])])
+
 
 
 def h(x):
@@ -178,9 +192,10 @@ def run_exp_LB_SGD(f, h, d, m,
     return opt
     
 def update(self, x, obstacle):
-        f_force = self.f(x, self.x_opt)
+        f_force = self.f(x)
         h_force = self.h(x, obstacle)
         total_force =  f_force + h_force
+        print("total_force",total_force)
         x = x - self.eta * total_force
         return x
 
@@ -189,8 +204,9 @@ def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obs
     current_time = 0
     while current_time < sim_time:
         # Calculate the total force on the robot
-        total_force = x_opt
-        print("Current time: ", total_force)
+        print(plplp.x_total)
+        total_force = plplp.x_opt
+        #print("Current time: ", total_force)
         # Update the robot's position using the total force
         robot_pos = robot_pos + total_force
         

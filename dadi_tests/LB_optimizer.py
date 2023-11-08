@@ -185,7 +185,7 @@ class SafeLogBarrierOptimizer:
         denominators = 1. / np.maximum(np.ones(self.m) * self.reg, alphas)
         #print("denominators", denominators)
         dB = df_e + self.eta * jacobian.T.dot(denominators)
-        #print("eta", self.eta)
+        #print("DB", dB)
         return dB
     
     def barrier_SGD(self):
@@ -255,13 +255,13 @@ class SafeLogBarrierOptimizer:
         self.eta = self.eta0
         x0 = self.x0
         x_prev = x0
-        """print(self.f(self.x0))
-        print("f_opt in log_barrier_decay", f_opt)   
-        print("x_long_trajectory in log_barrier_decay", x0)
-        print("errors_long_trajectory in log_barrier_decay", errors_long_trajectory)
-        print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
-        print("T_total in log_barrier_decay", T_total)
-        """
+        #print(self.f(self.x0))
+        #print("f_opt in log_barrier_decay", f_opt)   
+        #print("x_long_trajectory in log_barrier_decay", x0)
+        #print("errors_long_trajectory in log_barrier_decay", errors_long_trajectory)
+        #print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
+        #print("T_total in log_barrier_decay", T_total)
+        
         
         for k in range(self.K):
                 
@@ -272,14 +272,14 @@ class SafeLogBarrierOptimizer:
             T_total = T_total + T_k
             self.x0 = x_last_k
             self.eta = self.eta * self.factor
-            print("eta in LB",self.eta)
-            """"            print("x_traj_k", x_traj_k)
-            print("gamma_traj_k", gamma_traj_k) 
-            print("errors_traj_k", errors_traj_k)
-            print("constraints_traj_k", constraints_traj_k)
-            print("x_last_k", x_last_k)
-            print("T_k", T_k)
-            """
+            #print("eta in LB",self.eta)
+            #print("x_traj_k", x_traj_k)
+            #print("gamma_traj_k", gamma_traj_k) 
+            #print("errors_traj_k", errors_traj_k)
+            #print("constraints_traj_k", constraints_traj_k)
+            #print("x_last_k", x_last_k)
+            #print("T_k", T_k)
+            
         return x_long_trajectory, errors_long_trajectory, constraints_long_trajectory, T_total, x_last_k
 
     def get_random_initial_point(self):
@@ -317,6 +317,10 @@ class SafeLogBarrierOptimizer:
 
         f_0 = self.f(self.x0)
         f_opt = self.f(self.x_opt)
+
+        
+        #print("f_0", f_0)
+        #print("f_opt", f_opt)
         
         time_0 = time() 
         (x_long_trajectory, errors_long_trajectory, 
@@ -331,7 +335,9 @@ class SafeLogBarrierOptimizer:
 
         errors_total.append(errors_long_trajectory)
         constraints_total.append(constraints_long_trajectory)
-        #print("HEy, DADi LOOK HERERE",self.x0)
+        print("HEy, DADi LOOK HERERE",self.x0)
+        #print("XOPT", self.x_opt)
+        
         for i in range(self.experiments_num - 1):
             if self.random_init:
                 self.x0 = self.get_random_initial_point()
@@ -351,6 +357,8 @@ class SafeLogBarrierOptimizer:
         self.x_total = x_total
         self.errors_total = errors_total
         self.constraints_total = constraints_total
-        print("in function", x_last)
+        #print("x_total", x_total)
+        #print("errors_total", errors_total)
+        #print("in function", x_last)
         print('LB_SGD runs finished')
         return x_last
