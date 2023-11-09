@@ -29,9 +29,8 @@ def update_plot(ax, robot_pos, obstacle, robot_radius):
 d = 2
 m = 2
 experiments_num = 10
-n = int(d / 2)
-n = 1
-n_iters = d * 200
+n = 20
+n_iters = 4000
 x00 = np.array([5, 5])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
@@ -49,7 +48,7 @@ delta = 0.01
 
  #Initialize LB-SGD optimizer
 robot_start = ([5., 5.])
-robot_goal = ([90., 90.])
+robot_goal = ([80., 80.])
 obstacle = [(50., 50., 10.)]
 sim_time = 30.
 step_time = 0.1
@@ -58,7 +57,7 @@ current_time = 0.
 robot_pos = np.array(robot_start)
 # Constants for potential fields
 k1 = 5 # Gain for goal attraction
-k2 = 1000  # Gain for obstacle repulsion
+k2 = 100  # Gain for obstacle repulsion
 
 
 
@@ -100,7 +99,7 @@ def f(x):
             repulsive_force += k2 * ((2.4 * obs[2] - distance) / (distance**3)) * diff
  
 
-        elif distance >= 2.4 * obs[2]:
+        elif distance >= 2 * obs[2]:
             repulsive_force = np.array([0., 0.])   
 
     #print("repulsive_force",repulsive_force)     
@@ -208,23 +207,25 @@ def update(self, x, obstacle):
 
 
 def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, optimizer, update_plot):
-    current_time = 0
-    while current_time < sim_time:
-        print("j length: ", len(plplp.x_total))
-        for j in range(len(plplp.x_total)):
-            print("j", plplp.x_total[j]) 
-            if j in [0, 4, 9]:
-                for row in plplp.x_total[j]:
-                    for i in range(len(row)):
-                        total_force = row[i]
-                        print("total_force", total_force)
-                        # Update the robot's position using the total force
-                        robot_pos = total_force
-                        update_plot(ax, robot_pos, obstacle, robot_radius)
-                        plt.pause(0.001)
+    #current_time = 0
+    #while current_time < sim_time:
+    print("j length: ", len(plplp.x_total))
+    for j in range(len(plplp.x_total)):
+        print("j", j)
+        #print("j", plplp.x_total[j]) 
+        if j in [0,1]:
+            for row in plplp.x_total[j]:
+                
+                total_force = row
+                #print("exp_n", j,  "total_force", total_force)
+                # Update the robot's position using the total force
+                robot_pos = total_force
+                update_plot(ax, robot_pos, obstacle, robot_radius)
+                plt.pause(0.01)
+               
 
         
-        current_time += step_time
+        #current_time += step_time
     print("j length: ",len(plplp.x_total))
         
         
