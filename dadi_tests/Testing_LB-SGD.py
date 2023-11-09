@@ -28,8 +28,8 @@ def update_plot(ax, robot_pos, obstacle, robot_radius):
 
 d = 2
 m = 2
-experiments_num = 10
-n = 20
+experiments_num = 100
+n = 10
 n_iters = 4000
 x00 = np.array([5, 5])
 M0 = 0.5 / d
@@ -57,7 +57,7 @@ current_time = 0.
 robot_pos = np.array(robot_start)
 # Constants for potential fields
 k1 = 5 # Gain for goal attraction
-k2 = 100  # Gain for obstacle repulsion
+k2 = 300  # Gain for obstacle repulsion
 
 
 
@@ -213,7 +213,7 @@ def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obs
     for j in range(len(plplp.x_total)):
         print("j", j)
         #print("j", plplp.x_total[j]) 
-        if j in [0,1]:
+        if j in [0,49,90]:
             for row in plplp.x_total[j]:
                 
                 total_force = row
@@ -221,7 +221,7 @@ def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obs
                 # Update the robot's position using the total force
                 robot_pos = total_force
                 update_plot(ax, robot_pos, obstacle, robot_radius)
-                plt.pause(0.01)
+                plt.pause(0.001)
                
 
         
