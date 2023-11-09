@@ -4,6 +4,7 @@ import networkx as nx
 import numpy as np
 import matplotlib.animation as animation
 import LB_optimizer as LB
+import time
 
 
 
@@ -27,10 +28,10 @@ def update_plot(ax, robot_pos, obstacle, robot_radius):
 
 d = 2
 m = 2
-experiments_num = 10
+experiments_num = 3
 n = int(d / 2)
 n = 1
-n_iters = d * 60
+n_iters = d * 600
 x00 = np.array([5, 5])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
@@ -46,9 +47,9 @@ init_std = 0.5
 delta = 0.01
 
  #Initialize LB-SGD optimizer
-robot_start = ([50., 50.])
-robot_goal = ([900., 900.])
-obstacle = [(300., 300., 10.)]
+robot_start = ([5., 5.])
+robot_goal = ([90., 90.])
+obstacle = [(50., 50., 10.)]
 sim_time = 30.
 step_time = 0.1
 N = int(sim_time / step_time)
@@ -69,9 +70,6 @@ G = nx.grid_2d_graph(*grid_size)
 diagonal_cost = 1
 robot_radius = 5
 
-
-#dymanics of DD robot 
-moves = [(0, 1, 1), (0, -1, 1), (1, 0, 1), (-1, 0, 1), (1, 1, diagonal_cost), (1, -1, diagonal_cost), (-1, 1, diagonal_cost), (-1, -1, diagonal_cost)]
 
    # Define potential field functions f and h
 def f(x):
@@ -199,17 +197,20 @@ def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obs
     current_time = 0
     while current_time < sim_time:
         # Calculate the total force on the robot
-        total_force = plplp.xs
-        #print("Current time: ", total_force)
-        # Update the robot's position using the total force
-        robot_pos = robot_pos + total_force
-        
+        for row in plplp.x_total:
+            for i in range(len(row)):
+                total_force = row[i]
+                print("total_force", total_force)
+                # Update the robot's position using the total force
+                robot_pos = total_force
+                update_plot(ax, robot_pos, obstacle, robot_radius)
+                plt.pause(0.01)
 
         
         current_time += step_time
 
-        update_plot(ax, robot_pos, obstacle, robot_radius)
-        plt.pause(0.01)  # Add a slight delay to see the animation
+        
+        
     return robot_pos
 
 

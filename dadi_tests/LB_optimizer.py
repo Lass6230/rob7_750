@@ -202,7 +202,7 @@ class SafeLogBarrierOptimizer:
             
             self.step = self.dB_estimator()
             step_norm = np.linalg.norm(self.step)
-            print("step_norm", step_norm)
+            #print("step_norm", step_norm)
             gamma = self.compute_gamma(t)
 
             if step_norm < self.eta and self.no_break == False:
@@ -268,7 +268,7 @@ class SafeLogBarrierOptimizer:
             T_total = T_total + T_k
             self.x0 = x_last_k
             self.eta = self.eta * self.factor
-            print("eta in LB",self.eta)
+            #print("eta in LB",self.eta)
             """"            print("x_traj_k", x_traj_k)
             print("gamma_traj_k", gamma_traj_k) 
             print("errors_traj_k", errors_traj_k)
@@ -341,7 +341,7 @@ class SafeLogBarrierOptimizer:
             
             constraints_total.append(constraints_long_trajectory)
         self.x_total = x_total
-        
+        print(x_total)
         self.constraints_total = constraints_total
         print('LB_SGD runs finished')
         return x_last
