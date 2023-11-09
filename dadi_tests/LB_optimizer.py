@@ -341,7 +341,7 @@ class SafeLogBarrierOptimizer:
             
             constraints_total.append(constraints_long_trajectory)
         self.x_total = x_total
-        print(x_total)
+        #print(x_total)
         self.constraints_total = constraints_total
         print('LB_SGD runs finished')
         return x_last

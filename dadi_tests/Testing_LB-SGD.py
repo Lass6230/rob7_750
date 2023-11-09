@@ -28,15 +28,16 @@ def update_plot(ax, robot_pos, obstacle, robot_radius):
 
 d = 2
 m = 2
-experiments_num = 3
+experiments_num = 10
 n = int(d / 2)
 n = 1
-n_iters = d * 600
+n_iters = d * 200
 x00 = np.array([5, 5])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
 T = 3
-sigma = 0.0001
+sigma = 0.001
+hat_sigma = 0.01
 problem_name = 'QP'
 L = 0.25    
 obs_rad = 10
@@ -56,9 +57,9 @@ N = int(sim_time / step_time)
 current_time = 0.
 robot_pos = np.array(robot_start)
 # Constants for potential fields
-k1 = 5.0 # Gain for goal attraction
-k2 = 2.0  # Gain for obstacle repulsion
-step_size = 1.0  # Control the step size
+k1 = 5 # Gain for goal attraction
+k2 = 1000  # Gain for obstacle repulsion
+
 
 
 # Initialize the grid map
@@ -67,7 +68,7 @@ obstacle_cost = 1
 obstacle_force = 2
 fig, ax = plt.subplots()
 G = nx.grid_2d_graph(*grid_size)
-diagonal_cost = 1
+diagonal_cost = 0.5
 robot_radius = 5
 
 
@@ -87,30 +88,43 @@ def f(x):
 
     # Calculate the distance to the robot goal for each step and find the closest one
     closest_step = min(step_costs, key=lambda step: ((step[0] - robot_goal[0])**2 + (step[1] - robot_goal[1])**2)**0.5)
-    
-    return k1 * np.array([np.linalg.norm(closest_step[0] - robot_goal[0]), np.linalg.norm(closest_step[1] - robot_goal[1])])
 
+    repulsive_force = np.array([0., 0.])
+    
+    for obs in obstacle:
+        diff = x - obs[:2]
+        distance = np.linalg.norm(diff)
+        
+        
+        if distance <= 2.4 * obs[2]:
+            repulsive_force += k2 * ((2.4 * obs[2] - distance) / (distance**3)) * diff
+ 
+
+        elif distance >= 2.4 * obs[2]:
+            repulsive_force = np.array([0., 0.])   
+
+    #print("repulsive_force",repulsive_force)     
+
+    
+    return  np.array([np.linalg.norm(closest_step[0] - robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - robot_goal[1] + repulsive_force[1])]) 
 
 
 def h(x):
-    obstacle_force = np.zeros(2)
+    repulsive_force = np.array([0., 0.])
+    
     for obs in obstacle:
         diff = x - obs[:2]
-        if np.linalg.norm(diff) <= obs[2]:
-            obstacle_force += k2 * (1 / np.linalg.norm(diff) - 1 / obs[2]) * diff
+        distance = np.linalg.norm(diff)
+        
+        if distance <= 1.5 * obs[2]:
+            repulsive_force -=   diff - np.array([2,2])
+            #print("repulsive_force",repulsive_force)
+        else:
+            repulsive_force = np.array([0., 0.])
+
             
-    return obstacle_force
+    return repulsive_force
 
-"""def h(x):
-    d = np.size(x)
-    A = np.vstack((np.eye(d),-np.eye(d)))
-    b = np.ones(2 * d) / d**0.5
-    return A.dot(x) - b 
-
-def f(x):    
-    d = np.size(x)
-    xx = 2.0 * np.ones(d)
-    return np.linalg.norm(x - xx, 2)**2 / 4.0 / d"""
 
 
 
@@ -196,19 +210,22 @@ def update(self, x, obstacle):
 def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, optimizer, update_plot):
     current_time = 0
     while current_time < sim_time:
-        # Calculate the total force on the robot
-        for row in plplp.x_total:
-            for i in range(len(row)):
-                total_force = row[i]
-                print("total_force", total_force)
-                # Update the robot's position using the total force
-                robot_pos = total_force
-                update_plot(ax, robot_pos, obstacle, robot_radius)
-                plt.pause(0.01)
+        print("j length: ", len(plplp.x_total))
+        for j in range(len(plplp.x_total)):
+            print("j", plplp.x_total[j]) 
+            if j in [0, 4, 9]:
+                for row in plplp.x_total[j]:
+                    for i in range(len(row)):
+                        total_force = row[i]
+                        print("total_force", total_force)
+                        # Update the robot's position using the total force
+                        robot_pos = total_force
+                        update_plot(ax, robot_pos, obstacle, robot_radius)
+                        plt.pause(0.001)
 
         
         current_time += step_time
-
+    print("j length: ",len(plplp.x_total))
         
         
     return robot_pos
