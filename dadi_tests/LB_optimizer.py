@@ -141,7 +141,7 @@ class SafeLogBarrierOptimizer:
     random_init: bool = False
     no_break: bool = True
     x_total: list = None
-    errors_total: list = None
+    # errors_total: list = None
     constraints_total: list = None
     beta: float = None
     factor: float = 0.5
@@ -322,7 +322,7 @@ class SafeLogBarrierOptimizer:
         self.runtimes = [time() - time_0]
         
         x_total = []
-        errors_total = []
+        # errors_total = []
         constraints_total = []
 
         # errors_total.append(errors_long_trajectory)
