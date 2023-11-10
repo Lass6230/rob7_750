@@ -30,7 +30,7 @@ d = 2
 m = 2
 experiments_num = 100
 n = 10
-n_iters = 4000
+n_iters = 400
 x00 = np.array([5, 5])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
@@ -188,6 +188,8 @@ def run_exp_LB_SGD(f, h, d, m,
     constraints = opt.constraints_total
     runtimes = opt.runtimes
     runtimes = np.array(runtimes)
+    print("constrains",constraints)
+    print("runtimes", runtimes)
     
     """    with open('../runs/LB_SGD_' + problem_name + '_d' + str(d)  + '.npy', 'wb') as file:
         np.save(file, constraints)
