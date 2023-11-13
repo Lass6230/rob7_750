@@ -114,6 +114,11 @@ class SafeLogBarrierOptimizer:
     """
     This class allows to run LB-SGD optimization procedure given the oracle for the objective f and constraint h. 
     """
+    obstacle_list: list = None
+    obstacle: np.array = None
+    obs_pos_x: float = 50.0
+    obs_pos_y: float = 50.0
+    obs_pos_z: float = 10.0
     x00: np.array = None
     x0: np.array = None
     M0: float = None
@@ -193,6 +198,7 @@ class SafeLogBarrierOptimizer:
         Runs LB_SGD with constant parameter eta
         """
         self.xs = []
+        # x_trajectory = [] # added
         xt = self.x0
         #print("im,xt",xt)
         Tk = 0    
@@ -224,7 +230,7 @@ class SafeLogBarrierOptimizer:
                 constraints_trajectory = np.hstack((constraints_trajectory, np.max(self.h(xt))))
                 worst_constraint = max(worst_constraint, np.max(self.h(xt)))
             
-            #print("x_trajectory", x_trajectory)
+            # print("x_trajectory", x_trajectory)
             #print("gammea_trajectory", gamma_trajectory)
             
             #print("constraints_trajectory", constraints_trajectory)
@@ -241,7 +247,7 @@ class SafeLogBarrierOptimizer:
 
 
         """
-        
+        x_obstacle_trajectory = self.obstacle
         
         x_long_trajectory = self.x0
         
@@ -251,7 +257,7 @@ class SafeLogBarrierOptimizer:
         self.eta = self.eta0
         x0 = self.x0
         x_prev = x0
-        print(self.f(self.x0))
+        # print(self.f(self.x0))
           
         print("x_long_trajectory in log_barrier_decay", x0)
        
@@ -268,6 +274,11 @@ class SafeLogBarrierOptimizer:
             T_total = T_total + T_k
             self.x0 = x_last_k
             self.eta = self.eta * self.factor
+            self.obs_pos_x -= 1.
+            self.obs_pos_y -= 1.01
+            self.obstacle = [(self.obs_pos_x,self.obs_pos_y,self.obs_pos_z)]
+            x_obstacle_trajectory = np.vstack((x_obstacle_trajectory,self.obstacle))
+            
             #print("eta in LB",self.eta)
             """"            print("x_traj_k", x_traj_k)
             print("gamma_traj_k", gamma_traj_k) 
@@ -276,7 +287,7 @@ class SafeLogBarrierOptimizer:
             print("x_last_k", x_last_k)
             print("T_k", T_k)
             """
-        return x_long_trajectory,  constraints_long_trajectory, T_total, x_last_k 
+        return x_obstacle_trajectory, x_long_trajectory,  constraints_long_trajectory, T_total, x_last_k 
 
     def get_random_initial_point(self):
         """
@@ -292,6 +303,65 @@ class SafeLogBarrierOptimizer:
             if (self.h(x0) < - self.beta).all():
                 break
         return x0
+    
+
+
+    def run_previous_model(self):
+        print("online traning on previouss online traninged mode stuff :P")
+        
+        # load np.array, that are our "model"
+        pre_xt = np.load("runs.npy")
+        
+        #print(self.d)
+        self.beta = self.eta0
+        if self.random_init:
+            self.x0 = self.get_random_initial_point()
+            #self.x0 = pre_xt[0][len(pre_xt)-1] ## added to hopfully start at where the previous online training stopped
+            self.x0 = pre_xt[0]
+        else:
+            self.x0 = self.x00
+        f_0 = self.f(self.x0[0])
+        
+        
+        time_0 = time() 
+        (x_obstacle_trajectory, x_long_trajectory, constraints_long_trajectory, 
+                            T_total, 
+                            x_last) = self.log_barrier_decaying_eta()
+        self.runtimes = [time() - time_0]
+        
+        x_total = []
+        x_obstacle = []
+        errors_total = []
+        constraints_total = []
+
+        
+        constraints_total.append(constraints_long_trajectory)
+        #print("HEy, DADi LOOK HERERE",self.x0)
+        for i in range(self.experiments_num - 1):
+            if self.random_init:
+                self.x0 = self.get_random_initial_point()
+                self.x0 = pre_xt[0]
+                f_0 = self.f(self.x0[0])
+                ## added to hopfully start at where the previous online training stopped
+            else:
+                self.x0 = self.x00
+            
+
+            time_0 = time() 
+            (x_obstacle_trajectory, x_obstacle_trajectory,x_long_trajectory, constraints_long_trajectory, 
+                                T_total, 
+                                x_last) = self.log_barrier_decaying_eta()
+            self.runtimes.append(time() - time_0)
+            x_total.append(x_long_trajectory)
+            x_obstacle.append(x_obstacle_trajectory)
+            constraints_total.append(constraints_long_trajectory)
+        self.x_total = x_total
+        self.obstacle_list = x_obstacle
+        #print(x_total)
+        self.constraints_total = constraints_total
+        print('LB_SGD runs finished')
+
+        return x_last
     
     def run_average_experiment(self):
         """
@@ -313,12 +383,13 @@ class SafeLogBarrierOptimizer:
         f_0 = self.f(self.x0)
         
         time_0 = time() 
-        (x_long_trajectory, constraints_long_trajectory, 
+        (x_obstacle_trajectory, x_long_trajectory, constraints_long_trajectory, 
                             T_total, 
                             x_last) = self.log_barrier_decaying_eta()
         self.runtimes = [time() - time_0]
         
         x_total = []
+        x_obstacle = []
         errors_total = []
         constraints_total = []
 
@@ -333,15 +404,71 @@ class SafeLogBarrierOptimizer:
                 self.x0 = self.x00
 
             time_0 = time() 
-            (x_long_trajectory, constraints_long_trajectory, 
+            (x_obstacle_trajectory,x_long_trajectory, constraints_long_trajectory, 
                                 T_total, 
                                 x_last) = self.log_barrier_decaying_eta()
             self.runtimes.append(time() - time_0)
             x_total.append(x_long_trajectory)
+            x_obstacle.append(x_obstacle_trajectory)
             
             constraints_total.append(constraints_long_trajectory)
         self.x_total = x_total
+        self.obstacle_list = x_obstacle
         #print(x_total)
         self.constraints_total = constraints_total
         print('LB_SGD runs finished')
+
         return x_last
+    
+
+    def update(self, obstacale):
+        print("update")
+
+        # x_traj_k, gamma_traj_k, constraints_traj_k, x_last_k, T_k = self.barrier_SGD()
+
+        x_traj_k, gamma_traj_k, constraints_traj_k, x_last_k, T_k = self.barrier_SGD()
+            
+        constraints_long_trajectory = np.hstack((constraints_long_trajectory, constraints_traj_k))
+        x_long_trajectory = np.vstack((x_long_trajectory, x_traj_k))
+        T_total = T_total + T_k
+        self.x0 = x_last_k
+        self.eta = self.eta * self.factor
+        self.obs_pos_x -= 1.
+        self.obs_pos_y -= 1.01
+        self.obstacle = [(self.obs_pos_x,self.obs_pos_y,self.obs_pos_z)]
+        x_obstacle_trajectory = np.vstack((x_obstacle_trajectory,self.obstacle))
+        
+        #print("eta in LB",self.eta)
+        """"            print("x_traj_k", x_traj_k)
+        print("gamma_traj_k", gamma_traj_k) 
+        print("errors_traj_k", errors_traj_k)
+        print("constraints_traj_k", constraints_traj_k)
+        print("x_last_k", x_last_k)
+        print("T_k", T_k)
+            """
+        return x_obstacle_trajectory, x_long_trajectory,  constraints_long_trajectory, T_total, x_last_k 
+
+
+    def initial(self):
+        print("init")
+        self.beta = self.eta0
+        if self.random_init:
+            self.x0 = self.get_random_initial_point()
+            #self.x0 = pre_xt[0][len(pre_xt)-1] ## added to hopfully start at where the previous online training stopped
+        else:
+            self.x0 = self.x00
+        f_0 = self.f(self.x0)
+        
+        
+        time_0 = time() 
+        (x_obstacle_trajectory, x_long_trajectory, constraints_long_trajectory, 
+                            T_total, 
+                            x_last) = self.log_barrier_decaying_eta()
+        self.runtimes = [time() - time_0]
+
+
+    def barrier_SGD_non_block(self):
+
+    # def f(self,x):
+
+    # def h(self, x):

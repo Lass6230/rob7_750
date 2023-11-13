@@ -28,13 +28,13 @@ def update_plot(ax, robot_pos, obstacle, robot_radius):
 
 d = 2
 m = 2
-experiments_num = 100
-n = 10
-n_iters = 400
+experiments_num = 2
+n = 5
+n_iters = 800
 x00 = np.array([5, 5])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
-T = 3
+T = 3 # what is T 
 sigma = 0.001
 hat_sigma = 0.01
 problem_name = 'QP'
@@ -50,7 +50,7 @@ delta = 0.01
 robot_start = ([5., 5.])
 robot_goal = ([80., 80.])
 obstacle = [(50., 50., 10.)]
-sim_time = 30.
+sim_time = 400.0
 step_time = 0.1
 N = int(sim_time / step_time)
 current_time = 0.
@@ -177,9 +177,11 @@ def run_exp_LB_SGD(f, h, d, m,
         mu = 0.,
         convex = True,
         random_init = True,
-        no_break = False)
+        no_break = False,
+        obstacle = obstacle,)
 
     opt.run_average_experiment()
+    # opt.run_previous_model()
 
 
     for i in range(experiments_num):
@@ -188,8 +190,9 @@ def run_exp_LB_SGD(f, h, d, m,
     constraints = opt.constraints_total
     runtimes = opt.runtimes
     runtimes = np.array(runtimes)
-    print("constrains",constraints)
-    print("runtimes", runtimes)
+    # print("constrains",constraints)
+    # print("runtimes", runtimes)
+    # print(opt.x_total)
     
     """    with open('../runs/LB_SGD_' + problem_name + '_d' + str(d)  + '.npy', 'wb') as file:
         np.save(file, constraints)
@@ -211,25 +214,37 @@ def update(self, x, obstacle):
 def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, optimizer, update_plot):
     #current_time = 0
     #while current_time < sim_time:
-    print("j length: ", len(plplp.x_total))
+    # print("j length: ", len(plplp.x_total))
+    print("o[0]",len(plplp.obstacle_list[0]))
+    print("ol[0]",len(plplp.obstacle_list))
+    print("asd0",plplp.obstacle_list)
+    print("obs", obstacle)
+    count = 0
+    print("obs2: ",plplp.obstacle_list[count][count:count+3])
     for j in range(len(plplp.x_total)):
-        print("j", j)
+        # print("j", j)
         #print("j", plplp.x_total[j]) 
         if j in [0,49,90]:
-            for row in plplp.x_total[j]:
+            for k in range(len(plplp.x_total[j])):
                 
-                total_force = row
+                total_force = plplp.x_total[j][k]
                 #print("exp_n", j,  "total_force", total_force)
                 # Update the robot's position using the total force
                 robot_pos = total_force
-                update_plot(ax, robot_pos, obstacle, robot_radius)
+                update_plot(ax, robot_pos, [(plplp.obstacle_list[j][k][0],plplp.obstacle_list[j][k][1], plplp.obstacle_list[j][k][2])], robot_radius)
                 plt.pause(0.001)
                
 
         
         #current_time += step_time
-    print("j length: ",len(plplp.x_total))
-        
+    # print("j length: ",len(plplp.x_total[0]))
+    # print("Xt array: ", len(plplp.x_total))
+    # print("Xt :", plplp.x_total[0][0])
+    
+    np.save("runs.npy",plplp.x_total) # what experiement we want to save
+    print("before saved: ", plplp.x_total[0][-1])
+    pre_xt = np.load("runs.npy")
+    print("saved", pre_xt[0][-1])
         
     return robot_pos
 
