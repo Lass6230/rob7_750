@@ -574,6 +574,7 @@ class FhFunction:
             (x[0] - 1, x[1] + 1, self.diagonal_cost),
             (x[0] - 1, x[1] - 1, self.diagonal_cost)
         ]
+        
 
         # Calculate the distance to the robot goal for each step and find the closest one
         closest_step = min(step_costs, key=lambda step: ((step[0] - self.robot_goal[0])**2 + (step[1] - self.robot_goal[1])**2)**0.5)
