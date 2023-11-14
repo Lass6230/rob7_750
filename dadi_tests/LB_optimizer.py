@@ -6,7 +6,12 @@ from scipy.optimize import linprog, minimize_scalar
 from cvxopt import matrix, spmatrix
 from cvxopt.solvers import options, qp, lp, conelp, coneqp
 from scipy.stats import norm, chi2
-
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import networkx as nx
+import numpy as np
+import matplotlib.animation as animation
+import math
 # import matplotlib.pyplot as plt
 # import matplotlib.lines as line
 # from matplotlib import rc
@@ -114,6 +119,12 @@ class SafeLogBarrierOptimizer:
     """
     This class allows to run LB-SGD optimization procedure given the oracle for the objective f and constraint h. 
     """
+    x_last = None
+    obstacle_list: list = None
+    obstacle: np.array = None
+    obs_pos_x: float = 50.0
+    obs_pos_y: float = 50.0
+    obs_pos_z: float = 10.0
     x00: np.array = None
     x0: np.array = None
     M0: float = None
@@ -146,6 +157,7 @@ class SafeLogBarrierOptimizer:
     beta: float = None
     factor: float = 0.5
     runtimes: list = None
+    t_count: int = 0
     
     def compute_gamma(self, t: int) -> float:
         """
@@ -193,6 +205,7 @@ class SafeLogBarrierOptimizer:
         Runs LB_SGD with constant parameter eta
         """
         self.xs = []
+        # x_trajectory = [] # added
         xt = self.x0
         #print("im,xt",xt)
         Tk = 0    
@@ -208,23 +221,23 @@ class SafeLogBarrierOptimizer:
             if step_norm < self.eta and self.no_break == False:
                 break
 
-            xt = xt - gamma * self.step
+            xt = xt - gamma * self.step # calculate and update policy
             #print("xt", xt)
             Tk += 1
             if t == 0:
-                x_trajectory = np.array([xt])
+                x_trajectory = np.array([xt]) # # is the policy
                 gamma_trajectory = np.array([gamma])
                 
                 constraints_trajectory = np.max(self.h(xt))
                 worst_constraint = np.max(self.h(xt))
             else:
-                x_trajectory = np.vstack((x_trajectory, xt))
+                x_trajectory = np.vstack((x_trajectory, xt)) # is the policy
                 gamma_trajectory = np.vstack((gamma_trajectory, gamma))
                 
                 constraints_trajectory = np.hstack((constraints_trajectory, np.max(self.h(xt))))
                 worst_constraint = max(worst_constraint, np.max(self.h(xt)))
             
-            #print("x_trajectory", x_trajectory)
+            # print("x_trajectory", x_trajectory)
             #print("gammea_trajectory", gamma_trajectory)
             
             #print("constraints_trajectory", constraints_trajectory)
@@ -241,7 +254,7 @@ class SafeLogBarrierOptimizer:
 
 
         """
-        
+        x_obstacle_trajectory = self.obstacle
         
         x_long_trajectory = self.x0
         
@@ -251,7 +264,7 @@ class SafeLogBarrierOptimizer:
         self.eta = self.eta0
         x0 = self.x0
         x_prev = x0
-        print(self.f(self.x0))
+        # print(self.f(self.x0))
           
         print("x_long_trajectory in log_barrier_decay", x0)
        
@@ -268,6 +281,11 @@ class SafeLogBarrierOptimizer:
             T_total = T_total + T_k
             self.x0 = x_last_k
             self.eta = self.eta * self.factor
+            self.obs_pos_x -= 1.
+            self.obs_pos_y -= 1.01
+            self.obstacle = [(self.obs_pos_x,self.obs_pos_y,self.obs_pos_z)]
+            x_obstacle_trajectory = np.vstack((x_obstacle_trajectory,self.obstacle))
+            
             #print("eta in LB",self.eta)
             """"            print("x_traj_k", x_traj_k)
             print("gamma_traj_k", gamma_traj_k) 
@@ -276,7 +294,7 @@ class SafeLogBarrierOptimizer:
             print("x_last_k", x_last_k)
             print("T_k", T_k)
             """
-        return x_long_trajectory,  constraints_long_trajectory, T_total, x_last_k 
+        return x_obstacle_trajectory, x_long_trajectory,  constraints_long_trajectory, T_total, x_last_k 
 
     def get_random_initial_point(self):
         """
@@ -292,6 +310,65 @@ class SafeLogBarrierOptimizer:
             if (self.h(x0) < - self.beta).all():
                 break
         return x0
+    
+
+
+    def run_previous_model(self):
+        print("online traning on previouss online traninged mode stuff :P")
+        
+        # load np.array, that are our "model"
+        pre_xt = np.load("runs.npy")
+        
+        #print(self.d)
+        self.beta = self.eta0
+        if self.random_init:
+            self.x0 = self.get_random_initial_point()
+            #self.x0 = pre_xt[0][len(pre_xt)-1] ## added to hopfully start at where the previous online training stopped
+            self.x0 = pre_xt[0]
+        else:
+            self.x0 = self.x00
+        f_0 = self.f(self.x0[0])
+        
+        
+        time_0 = time() 
+        (x_obstacle_trajectory, x_long_trajectory, constraints_long_trajectory, 
+                            T_total, 
+                            x_last) = self.log_barrier_decaying_eta()
+        self.runtimes = [time() - time_0]
+        
+        x_total = []
+        x_obstacle = []
+        errors_total = []
+        constraints_total = []
+
+        
+        constraints_total.append(constraints_long_trajectory)
+        #print("HEy, DADi LOOK HERERE",self.x0)
+        for i in range(self.experiments_num - 1):
+            if self.random_init:
+                self.x0 = self.get_random_initial_point()
+                self.x0 = pre_xt[0]
+                f_0 = self.f(self.x0[0])
+                ## added to hopfully start at where the previous online training stopped
+            else:
+                self.x0 = self.x00
+            
+
+            time_0 = time() 
+            (x_obstacle_trajectory, x_obstacle_trajectory,x_long_trajectory, constraints_long_trajectory, 
+                                T_total, 
+                                x_last) = self.log_barrier_decaying_eta()
+            self.runtimes.append(time() - time_0)
+            x_total.append(x_long_trajectory)
+            x_obstacle.append(x_obstacle_trajectory)
+            constraints_total.append(constraints_long_trajectory)
+        self.x_total = x_total
+        self.obstacle_list = x_obstacle
+        #print(x_total)
+        self.constraints_total = constraints_total
+        print('LB_SGD runs finished')
+
+        return x_last
     
     def run_average_experiment(self):
         """
@@ -313,12 +390,13 @@ class SafeLogBarrierOptimizer:
         f_0 = self.f(self.x0)
         
         time_0 = time() 
-        (x_long_trajectory, constraints_long_trajectory, 
+        (x_obstacle_trajectory, x_long_trajectory, constraints_long_trajectory, 
                             T_total, 
                             x_last) = self.log_barrier_decaying_eta()
         self.runtimes = [time() - time_0]
         
         x_total = []
+        x_obstacle = []
         errors_total = []
         constraints_total = []
 
@@ -333,15 +411,380 @@ class SafeLogBarrierOptimizer:
                 self.x0 = self.x00
 
             time_0 = time() 
-            (x_long_trajectory, constraints_long_trajectory, 
+            (x_obstacle_trajectory,x_long_trajectory, constraints_long_trajectory, 
                                 T_total, 
                                 x_last) = self.log_barrier_decaying_eta()
             self.runtimes.append(time() - time_0)
             x_total.append(x_long_trajectory)
+            x_obstacle.append(x_obstacle_trajectory)
             
             constraints_total.append(constraints_long_trajectory)
         self.x_total = x_total
+        self.obstacle_list = x_obstacle
         #print(x_total)
         self.constraints_total = constraints_total
         print('LB_SGD runs finished')
+
         return x_last
+    
+
+    
+    def update(self):
+        x_traj_k = self.barrier_SGD_non_block()
+            
+        print("optimaizer")
+        return x_traj_k
+
+    def initial(self):
+        self.beta = self.eta0
+        if self.random_init:
+            self.x0 = self.get_random_initial_point()
+        else:
+            self.x0 = self.x00
+        f_0 = self.f(self.x0)
+
+
+        
+        time_0 = time() 
+        (x_obstacle_trajectory, x_long_trajectory, constraints_long_trajectory, 
+                            T_total, 
+                            x_last) = self.log_barrier_decaying_eta()
+        self.runtimes = [time() - time_0]
+        
+        if self.random_init:
+                self.x0 = self.get_random_initial_point()
+                f_0 = self.f(self.x0)
+        else:
+            self.x0 = self.x00
+        
+        x_obstacle_trajectory = self.obstacle
+        
+        x_long_trajectory = self.x0
+        
+        constraints_long_trajectory = np.max(self.h(self.x0))    
+        T_total = 0
+        
+        self.eta = self.eta0
+        x0 = self.x0
+        x_prev = x0
+        # print(self.f(self.x0))
+          
+        print("x_long_trajectory in log_barrier_decay", x0)
+       
+        print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
+        print("T_total in log_barrier_decay", T_total)
+
+
+    def barrier_SGD_non_block(self):
+        print("non block barrier_SGD")
+        """
+        Runs LB_SGD with constant parameter eta
+        """
+        if self.t_count == 0:
+            self.xs = []
+            # x_trajectory = [] # added
+            xt = self.x0
+            self.x_last = self.x0
+            #print("im,xt",xt)
+            # Tk = 0    
+        
+            
+        #print("ORacle Xo", xt)
+        self.oracle.sample(self.x_last)  
+        
+        self.step = self.dB_estimator()
+        step_norm = np.linalg.norm(self.step)
+        #print("step_norm", step_norm)
+        gamma = self.compute_gamma(self.t_count)
+        
+        if not(step_norm < self.eta and self.no_break == False):
+            
+
+            xt = self.x_last - gamma * self.step # calculate and update policy
+            #print("xt", xt)
+            # Tk += 1
+            
+            x_trajectory = np.array([xt]) # # is the policy
+            gamma_trajectory = np.array([gamma])
+            
+            constraints_trajectory = np.max(self.h(xt))
+            worst_constraint = np.max(self.h(xt))
+           
+            self.t_count += 1
+            if self.t_count == self.T:
+                self.t_count = 0
+                # print("x_trajectory", x_trajectory)
+                #print("gammea_trajectory", gamma_trajectory)
+                
+                #print("constraints_trajectory", constraints_trajectory)
+                #print("worst_constraint", worst_constraint)    
+
+            self.xs.append(xt)
+            self.x_last = xt
+        if self.t_count == 0:
+            self.x0 = self.x_last
+            self.eta = self.eta * self.factor
+        return xt#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
+          
+  
+
+
+# @dataclass
+class FhFunction:
+    obstacle: np.array = [(500., 500., 50.)]
+    obs_x_pos: float = 500.
+    obs_y_pos: float = 500.
+    diagonal_cost: float = 0.5
+    k1: float = 5 # Gain for goal attraction
+    k2: float = 300000 # Gain for obstacle repulsion
+    robot_goal: np.array = ([800., 800.])
+    def move_obstacle(self,x,y):
+        self.obs_x_pos += x
+        self.obs_y_pos += y
+        self.obstacle = [(self.obs_x_pos,self.obs_y_pos,50.0)]
+    
+    def setNewGoal(self, x, y):
+        self.robot_goal = ([x,y])
+    
+    def h(self,x):
+        repulsive_force = np.array([0., 0.])
+        stop_force = np.array([0., 0.])
+        
+        for obs in self.obstacle:
+            diff = x - obs[:2]
+            distance = np.linalg.norm(diff)
+            
+            if distance <= 1.5 * obs[2]:
+                stop_force -=   -np.linalg.norm(diff)
+                #print("repulsive_force",repulsive_force)
+            else:
+                stop_force = np.array([0., 0.])
+            
+            
+            """if distance <= 7 * obs[2]:
+                repulsive_force -= diff + self.k2 * ((7 * obs[2] - distance) / (distance**3)) * diff
+                #print("help")
+            else:
+                repulsive_force = np.array([0., 0.])"""        
+
+        #print("repulsive_force",repulsive_force)
+        print("stop_force",stop_force)
+        return repulsive_force + stop_force
+
+    def f(self,x):
+        # Calculate the costs for each of the possible steps
+        step_costs = [
+            (x[0], x[1] + 1, 1),
+            (x[0], x[1] - 1, 1),
+            (x[0] + 1, x[1], 1),
+            (x[0] - 1, x[1], 1),
+            (x[0] + 1, x[1] + 1, self.diagonal_cost),
+            (x[0] + 1, x[1] - 1, self.diagonal_cost),
+            (x[0] - 1, x[1] + 1, self.diagonal_cost),
+            (x[0] - 1, x[1] - 1, self.diagonal_cost)
+        ]
+
+        # Calculate the distance to the robot goal for each step and find the closest one
+        closest_step = min(step_costs, key=lambda step: ((step[0] - self.robot_goal[0])**2 + (step[1] - self.robot_goal[1])**2)**0.5)
+
+        for obs in self.obstacle:
+            diff = x - obs[:2]
+            distance = np.linalg.norm(diff)
+
+        repulsive_force = np.array([0., 0.])
+        if distance <= 7 * obs[2]:
+                repulsive_force +=  self.k2 * ((7 * obs[2] - distance) / (distance**3)) * diff
+                #print("help")
+        else:
+            repulsive_force = np.array([0., 0.])
+ 
+
+        #print("repulsive_force",repulsive_force)     
+
+        #return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1])]) 
+
+        return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1] + repulsive_force[1])]) 
+
+# @dataclass
+class Simulation:
+    d: float = 2
+    m: float = 2
+    x00: np.array = np.array([5, 5])
+    x0: np.array = None
+    M0: float = 0.5 / d
+    Ms: np.array = 0.0 * np.ones(m)
+    sigma: float = 0.001
+    hat_sigma: float = 0.01
+    init_std: float = 0.5 
+    eta0: float = 0.9
+    eta: float = None
+    step: np.array = None
+    reg: float = None
+    # x_opt: float = None
+    T: int = 3
+    K: int = None
+    experiments_num: int = 2
+    mu: float = None
+    xs: list = None
+    s: int = None
+    convex: bool = None
+    random_init: bool = False
+    no_break: bool = True
+    x_total: list = None
+    errors_total: list = None
+    constraints_total: list = None
+    beta: float = None
+    delta: float = 0.01
+    factor: float = 0.9
+    runtimes: list = None
+    obstacle: np.array = ([500.0, 500.0, 50])
+    n: int = 5
+    n_iters: int = 800
+    nu: float = 0.1
+    grid_size = (1000, 1000)
+    robot_start = ([5., 5.])
+    robot_goal = ([800., 800.])
+    robot_radius: float = 5
+    fig, ax = plt.subplots()
+
+    sim_time: float = 400.0
+    step_time: float = 0.1
+
+    def __init__(self):
+        print("init simulation")
+        self.myFhFunctions = FhFunction()
+        self.my_oracle = Oracle(
+            f = self.myFhFunctions.f,
+            h = self.myFhFunctions.h, 
+            sigma = self.sigma,
+            hat_sigma = 0.01,
+            delta = self.delta,
+            m = self.m,
+            d = self.d,
+            nu = self.nu,
+            zeroth_order = True,
+            n = self.n)
+        
+        self.opt = SafeLogBarrierOptimizer(
+            x00 = self.x00,
+            x0 = self.x00,
+            M0 = self.M0,
+            Ms = self.Ms,
+            sigma = self.my_oracle.sigma,
+            hat_sigma = self.my_oracle.hat_sigma,
+            init_std = self.init_std,
+            eta0 = self.eta0,
+            oracle = self.my_oracle,
+            f = self.myFhFunctions.f,
+            h = self.myFhFunctions.h,
+            d = self.d,
+            m = self.m,
+            reg = 0.1,
+            factor = self.factor,
+            T = self.T,
+            K = int(self.n_iters / self.T / 2. / self.n),
+            experiments_num = self.experiments_num,
+            mu = 0.,
+            convex = True,
+            random_init = True,
+            no_break = False,
+            obstacle = self.obstacle,
+            )
+        self.opt.initial()
+        # self.opt.run_average_experiment()
+        for x in range(1500):
+            xt = self.opt.update()
+            self.plot_nonblock(xt,self.myFhFunctions.obstacle)
+            if self.reachedGoal(xt):
+                x = np.random.random_integers(3,80)
+                y = np.random.random_integers(3,80)
+                self.myFhFunctions.setNewGoal(x,y)
+                self.robot_goal = ([x, y])
+
+
+            if x <= 400:
+                self.myFhFunctions.move_obstacle(0,0)
+            elif x <= 1000 and x > 400:
+                self.myFhFunctions.move_obstacle(1,-1)    
+            else:
+                self.myFhFunctions.move_obstacle(1,1)
+            if x == 700:
+                self.myFhFunctions.setNewGoal(5.0,5.0)
+                self.robot_goal = ([5.0, 5.0])
+        # robot_pos = self.playback_run_simulation(self.sim_time, self.step_time, self.robot_start, self.robot_goal, self.robot_radius, self.obstacle, self.opt, self.update_plot)# Display the result
+        plt.show()
+        print("done")
+    def reachedGoal(self,pos):
+        goal = np.asarray(self.robot_goal)
+        pos = np.asarray(pos)
+        distance=math.sqrt(pow(goal[0]-pos[0],2)+pow(goal[1]-pos[1],2))
+        if distance < 0.5:
+            return True
+        else:
+            return False
+    def update(self):
+        print("Update Simulatio")
+    def update_plot(self, ax, robot_pos, obstacle, robot_radius):
+        ax.clear()
+        ax.set_aspect('equal')
+        ax.set_xlim(0, self.grid_size[0])
+        ax.set_ylim(0, self.grid_size[1])
+
+        # Plot the obstacle(s)  
+        for obs in obstacle:
+            obs_circle = patches.Circle((obs[0], obs[1]), obs[2], color='red')
+            ax.add_patch(obs_circle)
+
+        # Plot the start, goal, and robot path
+        ax.plot(*self.robot_start, 'go', markersize=10, label='Start')
+        ax.plot(*self.robot_goal, 'bo', markersize=10, label='Goal')
+        ax.plot(robot_pos[0], robot_pos[1], 'ro', markersize=robot_radius, label='Robot')
+        line, = ax.plot([], [], 'b-', label='Robot Path')
+        ax.legend()
+
+    def plot_nonblock(self,robot_pos,obstacle):
+        # total_force = self.opt.x_total[-1][-1]
+        #print("exp_n", j,  "total_force", total_force)
+        # Update the robot's position using the total force
+        # robot_pos = total_force
+        # self.update_plot(self.ax, robot_pos, [(self.opt.obstacle_list[-1][-1][0],self.opt.obstacle_list[-1][-1][1], self.opt.obstacle_list[-1][-1][2])], self.robot_radius)
+        self.update_plot(self.ax, robot_pos, obstacle, self.robot_radius)
+        plt.pause(0.001)
+
+
+    def playback_run_simulation(self,sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, optimizer, update_plot):
+        #current_time = 0
+        #while current_time < sim_time:
+        # print("j length: ", len(plplp.x_total))
+        print("o[0]",len(self.opt.obstacle_list[0]))
+        print("ol[0]",len(self.opt.obstacle_list))
+        print("asd0",self.opt.obstacle_list)
+        print("obs", obstacle)
+        count = 0
+        print("obs2: ",self.opt.obstacle_list[count][count:count+3])
+        for j in range(len(self.opt.x_total)):
+            # print("j", j)
+            #print("j", plplp.x_total[j]) 
+            if j in [0,49,90]:
+                for k in range(len(self.opt.x_total[j])):
+                    
+                    total_force = self.opt.x_total[j][k]
+                    #print("exp_n", j,  "total_force", total_force)
+                    # Update the robot's position using the total force
+                    robot_pos = total_force
+                    self.update_plot(self.ax, robot_pos, [(self.opt.obstacle_list[j][k][0],self.opt.obstacle_list[j][k][1], self.opt.obstacle_list[j][k][2])], robot_radius)
+                    plt.pause(0.001)
+                
+
+            
+            #current_time += step_time
+        # print("j length: ",len(plplp.x_total[0]))
+        # print("Xt array: ", len(plplp.x_total))
+        # print("Xt :", plplp.x_total[0][0])
+        
+        np.save("runs.npy",self.opt.x_total) # what experiement we want to save
+        print("before saved: ", self.opt.x_total[0][-1])
+        pre_xt = np.load("runs.npy")
+        print("saved", pre_xt[0][-1])
+            
+        return robot_pos
