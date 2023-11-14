@@ -684,7 +684,7 @@ class Simulation:
             )
         self.opt.initial()
         # self.opt.run_average_experiment()
-        for x in range(600):
+        for x in range(1500):
             xt = self.opt.update()
             self.plot_nonblock(xt,self.myFhFunctions.obstacle)
             if self.reachedGoal(xt):
