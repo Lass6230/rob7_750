@@ -30,12 +30,12 @@ d = 2
 m = 2
 experiments_num = 2
 n = 10
-n_iters = 40000
+n_iters = 10000
 x00 = np.array([5, 5])
 M0 = 0.5 / d
 Ms = 0.0 * np.ones(m)
 T = 3
-sigma = 0.0001
+sigma = 1e-13
 hat_sigma = 0.01
 problem_name = 'QP'
 L = 0.25    
@@ -49,7 +49,7 @@ delta = 0.01
  #Initialize LB-SGD optimizer
 robot_start = ([5., 5.])
 robot_goal = ([900., 900.])
-obstacle = [(500., 500., 50.)]
+obstacle = [(500., 500., 150.)]
 sim_time = 30.
 step_time = 0.1
 N = int(sim_time / step_time)
@@ -57,7 +57,7 @@ current_time = 0.
 robot_pos = np.array(robot_start)
 # Constants for potential fields
 k1 = 5 # Gain for goal attraction
-k2 = 300  # Gain for obstacle repulsion && Obs. the bigger the obstacle, the bigger this value need to be
+k2 = obstacle[0][2] * 60  # Gain for obstacle repulsion, seems to need a relation to the size of the object to work correctly, 60 is just a randomly tested number
 
 
 
@@ -69,6 +69,7 @@ fig, ax = plt.subplots()
 G = nx.grid_2d_graph(*grid_size)
 diagonal_cost = 1
 robot_radius = 10
+safety_factor = robot_radius/2
 
 
    # Define potential field functions f and h
@@ -97,12 +98,12 @@ def f(x):
 
         
         
-        if distance <= 2.4 * obs[2]:
-            repulsive_force += k2 * ((2.4 * obs[2] - distance) / (distance**3)) * diff
-            #print("repulsive_force",repulsive_force) 
+        if distance <= 1.2 * (robot_radius + safety_factor + obs[2]):
+            repulsive_force += 100 * k2 * ((robot_radius + safety_factor + obs[2] - distance) / (distance**3)) * diff #no clue why, but k2 has to be multiplied by 100 for it to be consistent with most sizes
+            #print("repulsive_force",repulsive_force)
  
 
-        elif distance >= 2 * obs[2]:
+        elif distance >= robot_radius + safety_factor + obs[2]:
             repulsive_force = np.array([0., 0.])
             #print("repulsive_force",repulsive_force)    
 
@@ -119,7 +120,7 @@ def h(x):
         diff = x - obs[:2]
         distance = np.linalg.norm(diff)
         
-        if distance <=  2 * obs[2]:
+        if distance <=  robot_radius + safety_factor + obs[2]:
             repulsive_force -=   diff - np.array([2,2])
             #print("repulsive_force",repulsive_force)
         else:
@@ -209,6 +210,17 @@ def update(self, x, obstacle):
         x = x - self.eta * total_force
         return x
 
+
+""" def update(self, x, obstacle):
+    f_force = self.f(x)
+    h_force = self.h(x, obstacle)
+    total_force = f_force + h_force
+    
+    # Euler's method for integration
+    x_dot = -self.eta * total_force
+    x = x + x_dot * self.step_time
+    
+    return x """
 
 def run_simulation(sim_time, step_time, robot_pos, robot_goal, robot_radius, obstacle, optimizer, update_plot):
     current_time = 0
