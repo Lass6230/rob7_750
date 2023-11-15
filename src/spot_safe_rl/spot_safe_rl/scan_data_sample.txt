@@ -1,4 +1,10 @@
-There should be 128 points per scan
+There should be 128 or 271 points per scan
+
+
+[safe_rl_node-1] [INFO] [1700049869.815206645] [safe_rl_node]: Number of points: "271"
+[safe_rl_node-1] [INFO] [1700049869.817450104] [safe_rl_node]: Could not transform base_link to base_link: "base_link" passed to lookupTransform argument target_frame does not exist. 
+
+
 
 ---
 header:
