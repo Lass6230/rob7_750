@@ -14,7 +14,7 @@ def generate_launch_description():
 	ld = LaunchDescription()
 
 	remappings = [
-			('/sick_tim_5xx/scan', 'scan'),
+			('scan','sick_tim_5xx/scan'),
 	]
 	# Static TF
 	ld.add_action(Node(
