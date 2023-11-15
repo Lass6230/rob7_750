@@ -22,7 +22,7 @@ def generate_launch_description():
 			executable="static_transform_publisher",
 			name="static_transform_publisher",
 			output="log",
-			arguments=["0.0", "0.0", "0.0", "0.0", "0.0", "0.0", "front_rail", "cloud"],
+			arguments=["-0.13", "0.0", "0.125", "0.0", "0.0", "0.0", "front_rail", "cloud"],
 		))
 	
 

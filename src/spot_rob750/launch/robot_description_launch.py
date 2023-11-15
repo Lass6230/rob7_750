@@ -16,8 +16,6 @@ def generate_launch_description():
 
 
 
-	# Nav2
-	# Static TF
 	if 1:
 		ld.add_action(Node(
 			package="tf2_ros",
@@ -26,13 +24,14 @@ def generate_launch_description():
 			output="log",
 			arguments=["-0.13", "0.0", "0.125", "0.0", "0.0", "0.0", "front_rail", "cloud"],
 		))
+    
 
 	# Spot driver
 	if 1:
-		spot_config = os.path.join(get_package_share_directory('spot_rob750'), 'config/spot_config.yaml')
-		spot_launch = os.path.join(get_package_share_directory('spot_driver'), 'launch', "spot_driver_2.launch.py")
+		# spot_config = os.path.join(get_package_share_directory('spot_rob750'), 'config/spot_config.yaml')
+		spot_launch = os.path.join(get_package_share_directory('spot_description'), 'launch', "description.launch.py")
 		ld.add_action(IncludeLaunchDescription(PythonLaunchDescriptionSource(spot_launch),
-		                                       launch_arguments={"config_file": spot_config}.items()))
+		                                       ))
 
 	
 		# remappings = [
@@ -45,7 +44,7 @@ def generate_launch_description():
 		# ]
 
 		
-	if 1:
+	if 0:
 		ld.add_action(Node(
 				package='rviz2',
 				namespace='rviz2',
@@ -58,4 +57,6 @@ def generate_launch_description():
 	
 	"---------------------------------------------------------------"
 	
-	return ld
+	return ld# Import necessary ROS2 packages
+
+
