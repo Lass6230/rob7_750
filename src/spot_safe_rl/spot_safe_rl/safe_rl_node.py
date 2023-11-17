@@ -12,14 +12,26 @@ from tf2_ros.transform_listener import TransformListener
 from geometry_msgs.msg import Twist
 import tf2_py
 from tf_transformations import euler_from_quaternion
-
+import math
+import numpy as np
+import matplotlib.pyplot as plt
 # from rclpy.qos_event import SubscriptionEventCallbacks
 # from rclpy.qos_event import QoSSubscriptionEventType
+import networkx as nx
 
 class SafeRlNode(Node):
 
     def __init__(self):
         super().__init__('safe_rl_node')
+
+
+
+        grid_size = (100, 100)
+        
+        self.fig, self.ax = plt.subplots()
+        self.G = nx.grid_2d_graph(*grid_size)
+
+
         # self.publisher_ = self.create_publisher(String, 'topic', 10)
         timer_period = 0.5  # seconds
 
@@ -27,7 +39,7 @@ class SafeRlNode(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.target_frame = "base_link"
-        self.from_frame = "map"
+        self.from_frame = "odom"
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
                                           history=rclpy.qos.HistoryPolicy.KEEP_LAST,
@@ -44,12 +56,36 @@ class SafeRlNode(Node):
         # sim = LB.Simulation()
 
     def sensor_callback(self, msg):
-        print("sensor callback")
+        # print("sensor callback")
+
+        x,y,rot = self.location()
         self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
+        obstacles_x = []
+        obstacles_y = []
+        # obstacles_x.append(math.cos(msg.angle_min+(1*msg.angle_increment))*msg.ranges[0])
+        # self.get_logger().info('X: "%f"' % obstacles_x[0])
+        self.get_logger().info('X: "%f" ' % x)
+        self.get_logger().info('Y: "%f"' % y)
+        for i in range(len(msg.ranges)):
+            # obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.cos(rot)-math.sin(rot))-x)
+            # obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.sin(rot)-math.cos(rot))+y)
+            obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i]))
+            obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i]))
+            # if msg.angle_min+(i*msg.angle_increment) < 0.0:
+            #     obstacles_x.append(-math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
+            #     obstacles_y.append(-math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
+            # else:
+            #     obstacles_x.append(math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
+            #     obstacles_y.append(math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
+            # self.get_logger().info('X: "%f" ' % obstacles_x[i])
+            # self.get_logger().info('Y: "%f"' % obstacles_y[i])
+        self.ax.clear()
+        # self.ax.scatter(y,-x,color='red')
+        self.ax.scatter(obstacles_y,obstacles_x)
+        plt.pause(0.005)
+        # self.timer_callback()
 
-        self.timer_callback()
-
-    def timer_callback(self):
+    def location(self):
         # msg = String()
         # msg.data = 'Hello World: %d' % self.i
         # # self.publisher_.publish(msg)
@@ -72,6 +108,7 @@ class SafeRlNode(Node):
             self.pose_yaw = yaw
 
             self.get_logger().info('z_rot: "%f"' % yaw)
+            return t.transform.translation.x, t.transform.translation.y, yaw
         except TransformException as ex:
             self.get_logger().info(
                 f'Could not transform {self.target_frame} to {self.target_frame}: {ex}')
