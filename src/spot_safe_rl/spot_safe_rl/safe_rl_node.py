@@ -69,8 +69,8 @@ class SafeRlNode(Node):
         for i in range(len(msg.ranges)):
             # obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.cos(rot)-math.sin(rot))-x)
             # obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.sin(rot)-math.cos(rot))+y)
-            obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i]))
-            obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i]))
+            obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
+            obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)
             # if msg.angle_min+(i*msg.angle_increment) < 0.0:
             #     obstacles_x.append(-math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
             #     obstacles_y.append(-math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
@@ -80,7 +80,7 @@ class SafeRlNode(Node):
             # self.get_logger().info('X: "%f" ' % obstacles_x[i])
             # self.get_logger().info('Y: "%f"' % obstacles_y[i])
         self.ax.clear()
-        # self.ax.scatter(y,-x,color='red')
+        self.ax.scatter(y,x,color='red')
         self.ax.scatter(obstacles_y,obstacles_x)
         plt.pause(0.005)
         # self.timer_callback()
@@ -94,8 +94,8 @@ class SafeRlNode(Node):
 
         try:
             t = self.tf_buffer.lookup_transform(
-                self.target_frame,
                 self.from_frame,
+                self.target_frame,
                 rclpy.time.Time())
             self.get_logger().info(
                         f'got transform {self.target_frame} to {self.target_frame}')
@@ -112,7 +112,7 @@ class SafeRlNode(Node):
         except TransformException as ex:
             self.get_logger().info(
                 f'Could not transform {self.target_frame} to {self.target_frame}: {ex}')
-            return
+            return 0.0, 0.0, 0.0
     
     def get_robot_position(self):
         print("getting robot position")
