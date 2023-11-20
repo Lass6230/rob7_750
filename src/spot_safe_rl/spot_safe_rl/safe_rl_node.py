@@ -55,13 +55,16 @@ class SafeRlNode(Node):
         )
         self.subscription  # prevent unused variable warning
 
+        self.count = 0
+
         # self.i = 0
         # sim = LB.Simulation()
 
     def sensor_callback(self, msg):
         # print("sensor callback")
 
-        # x,y,rot = self.location()
+        x,y,rot = self.location()
+        self.safe_rl.setPos(x=x,y=y,rot=rot)
         # self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
         # obstacles_x = []
         # obstacles_y = []
@@ -88,6 +91,7 @@ class SafeRlNode(Node):
         # self.ax.scatter(y,x,color='red')
         # self.ax.scatter(obstacles_y,obstacles_x)
         # plt.pause(0.005)
+       
         vel = self.safe_rl.update()
         if vel.any() == None:
             self.publish_cmd_vel(0.0,0.0,0.0)

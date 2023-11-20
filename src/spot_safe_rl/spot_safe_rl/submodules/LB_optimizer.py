@@ -230,7 +230,7 @@ class SafeLogBarrierOptimizer:
                 
                 constraints_trajectory = np.max(self.h(xt))
                 worst_constraint = np.max(self.h(xt))
-            else:
+            elif x_trajectory != None:
                 x_trajectory = np.vstack((x_trajectory, xt)) # is the policy
                 gamma_trajectory = np.vstack((gamma_trajectory, gamma))
                 
@@ -436,43 +436,43 @@ class SafeLogBarrierOptimizer:
         return x_traj_k
 
     def initial(self):
-        self.beta = self.eta0
-        if self.random_init:
-            self.x0 = self.get_random_initial_point()
-        else:
-            self.x0 = self.x00
-        f_0 = self.f(self.x0)
+        # self.beta = self.eta0
+        # if self.random_init:
+        #     self.x0 = self.get_random_initial_point()
+        # else:
+        #     self.x0 = self.x00
+        # f_0 = self.f(self.x0)
 
 
         
-        time_0 = time() 
-        (x_obstacle_trajectory, x_long_trajectory, constraints_long_trajectory, 
-                            T_total, 
-                            x_last) = self.log_barrier_decaying_eta()
-        self.runtimes = [time() - time_0]
+        # time_0 = time() 
+        # (x_obstacle_trajectory, x_long_trajectory, constraints_long_trajectory, 
+        #                     T_total, 
+        #                     x_last) = self.log_barrier_decaying_eta()
+        # self.runtimes = [time() - time_0]
         
-        if self.random_init:
-                self.x0 = self.get_random_initial_point()
-                f_0 = self.f(self.x0)
-        else:
-            self.x0 = self.x00
+        # if self.random_init:
+        #         self.x0 = self.get_random_initial_point()
+        #         f_0 = self.f(self.x0)
+        # else:
+        #     self.x0 = self.x00
         
-        x_obstacle_trajectory = self.obstacle
+        # x_obstacle_trajectory = self.obstacle
         
-        x_long_trajectory = self.x0
+        # x_long_trajectory = self.x0
         
-        constraints_long_trajectory = np.max(self.h(self.x0))    
-        T_total = 0
+        # constraints_long_trajectory = np.max(self.h(self.x0))    
+        # T_total = 0
         
         self.eta = self.eta0
         x0 = self.x0
         x_prev = x0
         # print(self.f(self.x0))
           
-        print("x_long_trajectory in log_barrier_decay", x0)
+        # print("x_long_trajectory in log_barrier_decay", x0)
        
-        print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
-        print("T_total in log_barrier_decay", T_total)
+        # print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
+        # print("T_total in log_barrier_decay", T_total)
 
 
     def barrier_SGD_non_block(self):
@@ -497,30 +497,30 @@ class SafeLogBarrierOptimizer:
         #print("step_norm", step_norm)
         gamma = self.compute_gamma(self.t_count)
         
-        if not(step_norm < self.eta and self.no_break == False):
+        # if not(step_norm < self.eta and self.no_break == False):
             
 
-            xt = self.x_last - gamma * self.step # calculate and update policy
-            #print("xt", xt)
-            # Tk += 1
+        xt = self.x_last - gamma * self.step # calculate and update policy
+        #print("xt", xt)
+        # Tk += 1
+        
+        x_trajectory = np.array([xt]) # # is the policy
+        gamma_trajectory = np.array([gamma])
+        
+        constraints_trajectory = np.max(self.h(xt))
+        worst_constraint = np.max(self.h(xt))
+        
+        self.t_count += 1
+        if self.t_count == self.T:
+            self.t_count = 0
+            # print("x_trajectory", x_trajectory)
+            #print("gammea_trajectory", gamma_trajectory)
             
-            x_trajectory = np.array([xt]) # # is the policy
-            gamma_trajectory = np.array([gamma])
-            
-            constraints_trajectory = np.max(self.h(xt))
-            worst_constraint = np.max(self.h(xt))
-           
-            self.t_count += 1
-            if self.t_count == self.T:
-                self.t_count = 0
-                # print("x_trajectory", x_trajectory)
-                #print("gammea_trajectory", gamma_trajectory)
-                
-                #print("constraints_trajectory", constraints_trajectory)
-                #print("worst_constraint", worst_constraint)    
+            #print("constraints_trajectory", constraints_trajectory)
+            #print("worst_constraint", worst_constraint)    
 
-            self.xs.append(xt)
-            self.x_last = xt
+        self.xs.append(xt)
+        self.x_last = xt
         if self.t_count == 0:
             self.x0 = self.x_last
             self.eta = self.eta * self.factor
@@ -546,6 +546,9 @@ class FhFunction:
     angular_vel: float = 0.0
     j: int = 0
 
+    x_pos: float = 0.0
+    y_pos: float = 0.0
+    rot_pos: float = 0.0
 
     def move_obstacle(self,x,y):
         self.obs_x_pos += x
@@ -554,8 +557,16 @@ class FhFunction:
     
     def setNewGoal(self, x, y):
         self.robot_goal = ([x,y])
+    
+    def setPos(self, x, y, rot):
+        self.x_pos = x
+        self.y_pos = y
+        self.rot_pos = rot
 
     def h(self, x):
+
+        
+
         step_costs = [self.linear_vel * math.cos(self.theta),
                             self.linear_vel * math.sin(self.theta),
                             self.angular_vel / self.wheel_distance]
@@ -570,13 +581,13 @@ class FhFunction:
             angle_diff += 2 * math.pi
 
         # Set angular velocity proportional to the angle difference
-        self.angular_vel = 0.5 * angle_diff
+        self.angular_vel = 0.05 * angle_diff
 
 
         
         # Set linear velocity proportional to the distance to the target
         distance_to_target = math.sqrt((self.robot_goal[0] - x[0])**2 + (self.robot_goal[1] - x[1])**2)
-        self.linear_vel = 0.9 * distance_to_target    
+        self.linear_vel = 0.09 * distance_to_target    
 
         # print("velocity", self.linear_vel)
 
@@ -628,7 +639,6 @@ class FhFunction:
 
     def f(self, x):
         
-
         step_costs = [self.linear_vel * math.cos(self.theta),
                       self.linear_vel * math.sin(self.theta),
                       self.angular_vel / self.wheel_distance]
@@ -643,13 +653,13 @@ class FhFunction:
             angle_diff += 2 * math.pi
 
         # Set angular velocity proportional to the angle difference
-        self.angular_vel = 0.5 * angle_diff
+        self.angular_vel = 0.05 * angle_diff
 
 
         
         # Set linear velocity proportional to the distance to the target
         distance_to_target = np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1])])
-        self.linear_vel = 0.9 * distance_to_target    
+        self.linear_vel = 0.09 * distance_to_target    
 
         print("velocity", self.linear_vel)
         #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
@@ -796,6 +806,7 @@ class Simulation:
             )
         self.myFhFunctions.setNewGoal(1,1)
         self.opt.initial()
+        
         # # self.opt.run_average_experiment()
         # for x in range(1500):
         #     xt = self.opt.update()
@@ -841,6 +852,8 @@ class Simulation:
         else:
             return False
     
+    def setPos(self,x,y,rot):
+        self.myFhFunctions.setPos(x,y,rot)
 
     def update(self):
         xt = self.opt.update()
