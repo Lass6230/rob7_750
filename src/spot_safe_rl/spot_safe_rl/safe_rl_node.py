@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import String
-# from .submodules import LB_optimizer as LB
+from .submodules import LB_optimizer as LB
 
 from sensor_msgs.msg import LaserScan
 
@@ -11,7 +11,7 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from geometry_msgs.msg import Twist
 import tf2_py
-from tf_transformations import euler_from_quaternion
+from tf_transformations import euler_from_quaternion, quaternion_from_euler
 import math
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,7 +24,10 @@ class SafeRlNode(Node):
     def __init__(self):
         super().__init__('safe_rl_node')
 
+        self.safe_rl = LB.Simulation()
 
+
+        self.cmd_vel_publisher_ = self.create_publisher(Twist, 'cmd_vel', 10)
 
         grid_size = (100, 100)
         
@@ -58,32 +61,38 @@ class SafeRlNode(Node):
     def sensor_callback(self, msg):
         # print("sensor callback")
 
-        x,y,rot = self.location()
-        self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
-        obstacles_x = []
-        obstacles_y = []
-        # obstacles_x.append(math.cos(msg.angle_min+(1*msg.angle_increment))*msg.ranges[0])
-        # self.get_logger().info('X: "%f"' % obstacles_x[0])
-        self.get_logger().info('X: "%f" ' % x)
-        self.get_logger().info('Y: "%f"' % y)
-        for i in range(len(msg.ranges)):
-            # obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.cos(rot)-math.sin(rot))-x)
-            # obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.sin(rot)-math.cos(rot))+y)
-            obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
-            obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)
-            # if msg.angle_min+(i*msg.angle_increment) < 0.0:
-            #     obstacles_x.append(-math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
-            #     obstacles_y.append(-math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
-            # else:
-            #     obstacles_x.append(math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
-            #     obstacles_y.append(math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
-            # self.get_logger().info('X: "%f" ' % obstacles_x[i])
-            # self.get_logger().info('Y: "%f"' % obstacles_y[i])
-        self.ax.clear()
-        self.ax.scatter(y,x,color='red')
-        self.ax.scatter(obstacles_y,obstacles_x)
-        plt.pause(0.005)
-        # self.timer_callback()
+        # x,y,rot = self.location()
+        # self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
+        # obstacles_x = []
+        # obstacles_y = []
+        # # obstacles_x.append(math.cos(msg.angle_min+(1*msg.angle_increment))*msg.ranges[0])
+        # # self.get_logger().info('X: "%f"' % obstacles_x[0])
+        # self.get_logger().info('X: "%f" ' % x)
+        # self.get_logger().info('Y: "%f"' % y)
+        # for i in range(len(msg.ranges)):
+        #     # obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.cos(rot)-math.sin(rot))-x)
+        #     # obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.sin(rot)-math.cos(rot))+y)
+        #     obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
+        #     obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)
+        #     # if msg.angle_min+(i*msg.angle_increment) < 0.0:
+        #     #     obstacles_x.append(-math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
+        #     #     obstacles_y.append(-math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
+        #     # else:
+        #     #     obstacles_x.append(math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
+        #     #     obstacles_y.append(math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
+        #     # self.get_logger().info('X: "%f" ' % obstacles_x[i])
+        #     # self.get_logger().info('Y: "%f"' % obstacles_y[i])
+        
+
+        # self.ax.clear()
+        # self.ax.scatter(y,x,color='red')
+        # self.ax.scatter(obstacles_y,obstacles_x)
+        # plt.pause(0.005)
+        vel = self.safe_rl.update()
+        if vel.any() == None:
+            self.publish_cmd_vel(0.0,0.0,0.0)
+        else:
+            self.publish_cmd_vel(vel[0],vel[1],0.0)
 
     def location(self):
         # msg = String()
@@ -114,12 +123,16 @@ class SafeRlNode(Node):
                 f'Could not transform {self.target_frame} to {self.target_frame}: {ex}')
             return 0.0, 0.0, 0.0
     
-    def get_robot_position(self):
-        print("getting robot position")
+    
 
         
-    def publish_cmd_vel(self):
-        print("publishing cmd_vel")
+    def publish_cmd_vel(self,x_vel,y_vel,z_rot_vel):
+        data = Twist()
+        data.linear.x = x_vel
+        data.linear.y = y_vel
+        
+        data.angular.z = z_rot_vel
+        self.cmd_vel_publisher_.publish(data)
 
 def main(args=None):
     rclpy.init(args=args)
