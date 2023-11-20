@@ -655,7 +655,7 @@ class FhFunction:
         repulsive_force = np.array([0., 0.])
         new_pos = np.array([0., 0.])
 
-        for obs in self.obstacle:
+        """for obs in self.obstacle:
             diff = x - obs[:2]
             distance = np.linalg.norm(diff)
 
@@ -691,7 +691,7 @@ class FhFunction:
 
 
                 # Return the distance to the next point of interest as a guidance parameter
-                return -next_point_of_interest 
+                return -next_point_of_interest """
 
 
 
