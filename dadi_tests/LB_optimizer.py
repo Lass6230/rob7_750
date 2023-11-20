@@ -539,6 +539,14 @@ class FhFunction:
     k1: float = 5 # Gain for goal attraction
     k2: float = 30 # Gain for obstacle repulsion
     robot_goal: np.array = ([800., 800.])
+    theta: float = 0.  # in radians
+    wheel_radius: float = 1.0  # adjust as needed
+    wheel_distance: float = 2.0  # adjust as needed
+    linear_vel: float = 0.0
+    angular_vel: float = 0.0
+    j: int = 0
+
+
     def move_obstacle(self,x,y):
         self.obs_x_pos += x
         self.obs_y_pos += y
@@ -548,58 +556,102 @@ class FhFunction:
         self.robot_goal = ([x,y])
 
     def h(self, x):
-            step_costs = [
-                (x[0], x[1] + 1, 1),
-                (x[0], x[1] - 1, 1),
-                (x[0] + 1, x[1], 1),
-                (x[0] - 1, x[1], 1),
-                (x[0] + 1, x[1] + 1, self.diagonal_cost),
-                (x[0] + 1, x[1] - 1, self.diagonal_cost),
-                (x[0] - 1, x[1] + 1, self.diagonal_cost),
-                (x[0] - 1, x[1] - 1, self.diagonal_cost)
-            ]
+        step_costs = [self.linear_vel * math.cos(self.theta),
+                            self.linear_vel * math.sin(self.theta),
+                            self.angular_vel / self.wheel_distance]
+                
+        target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
+        
+        angle_diff = target_angle - self.theta
+
+        while angle_diff > math.pi:
+            angle_diff -= 2 * math.pi
+        while angle_diff < -math.pi:
+            angle_diff += 2 * math.pi
+
+        # Set angular velocity proportional to the angle difference
+        self.angular_vel = 0.5 * angle_diff
+
+
+        
+        # Set linear velocity proportional to the distance to the target
+        distance_to_target = math.sqrt((self.robot_goal[0] - x[0])**2 + (self.robot_goal[1] - x[1])**2)
+        self.linear_vel = 0.9 * distance_to_target    
+
+        print("velocity", self.linear_vel)
+        #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
+        repulsive_force = np.array([0., 0.])
+        new_pos = np.array([0., 0.])
 
             
 
-            repulsive_force = np.array([0., 0.])
-            stop_force = np.array([0., 0.])
-            kill_force = np.array([0., 0.])
+        repulsive_force = np.array([0., 0.])
+        stop_force = np.array([0., 0.])
+        kill_force = np.array([0., 0.])
 
-            """for obs in self.obstacle:
-                diff = x - obs[:2]
-                distance = np.linalg.norm(diff)
+        """for obs in self.obstacle:
+            diff = x - obs[:2]
+            distance = np.linalg.norm(diff)
 
-                if distance <= 5* obs[2]:
-                    # Calculate the direction vector towards the goal
-                    direction_to_goal = self.robot_goal - x
-                    direction_to_goal /= np.linalg.norm(direction_to_goal)
+            if distance <= 8* obs[2]:
+                repulsive_force += 10000 * ((2.4 * obs[2] - distance)) * diff
+            
+            if distance <= 5 * obs[2]:
+                self.j = 1
+            elif distance >= 8 * obs[2]:
+                self.j = 0    
+            
+            
 
-                    # Calculate the tangential direction around the obstacle
-                    tangent = np.array([-diff[1], diff[0]])  # Calculate a vector perpendicular to the obstacle
-                    tangent /= np.linalg.norm(tangent)  # Normalize the tangent vector
+            while self.j == 1:
+                # Calculate the vector from the robot to the obstacle
+                diff_to_obs = x - obs[:2]
 
-                    # Calculate the new direction considering both the goal and tangent directions
-                    new_direction = (direction_to_goal + tangent) / np.linalg.norm(direction_to_goal + tangent)
+                # Calculate the tangent direction around the obstacle
+                tangent = np.array([diff_to_obs[1]- 100 , -diff_to_obs[0]])
 
-                    # Calculate the next point based on the new direction
-                    next_point_of_interest = x + new_direction * 2  # Adjust the magnitude as needed
+                # Normalize the tangent vector
+                tangent /= np.linalg.norm(tangent)
 
-                    return np.array([x[0] - next_point_of_interest[0], x[0] - next_point_of_interest[1]])  # Return the next point of interest"""
-            return np.array([0.,0.])  # Return original position if no obstacle is nearby
+                # Calculate the desired position around the obstacle using the tangent
+                next_point_of_interest = x + 5 * tangent  # Adjust the distance as needed
+
+                print("Next Point of Interest:", next_point_of_interest)
+
+                
+
+
+                # Return the distance to the next point of interest as a guidance parameter
+                return next_point_of_interest * 0.9"""
+        return np.array([0.,0.])    
 
     def f(self, x):
-        step_costs = [
-            (x[0], x[1] + 1, 1),
-            (x[0], x[1] - 1, 1),
-            (x[0] + 1, x[1], 1),
-            (x[0] - 1, x[1], 1),
-            (x[0] + 1, x[1] + 1, self.diagonal_cost),
-            (x[0] + 1, x[1] - 1, self.diagonal_cost),
-            (x[0] - 1, x[1] + 1, self.diagonal_cost),
-            (x[0] - 1, x[1] - 1, self.diagonal_cost)
-        ]
+        
 
-        closest_step = min(step_costs, key=lambda step: ((step[0] - self.robot_goal[0])**2 + (step[1] - self.robot_goal[1])**2)**0.5)
+        step_costs = [self.linear_vel * math.cos(self.theta),
+                      self.linear_vel * math.sin(self.theta),
+                      self.angular_vel / self.wheel_distance]
+        
+        target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
+        
+        angle_diff = target_angle - self.theta
+
+        while angle_diff > math.pi:
+            angle_diff -= 2 * math.pi
+        while angle_diff < -math.pi:
+            angle_diff += 2 * math.pi
+
+        # Set angular velocity proportional to the angle difference
+        self.angular_vel = 0.5 * angle_diff
+
+
+        
+        # Set linear velocity proportional to the distance to the target
+        distance_to_target = np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1])])
+        self.linear_vel = 0.9 * distance_to_target    
+
+        print("velocity", self.linear_vel)
+        #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
         repulsive_force = np.array([0., 0.])
         new_pos = np.array([0., 0.])
 
@@ -607,36 +659,49 @@ class FhFunction:
             diff = x - obs[:2]
             distance = np.linalg.norm(diff)
 
-            if distance <= 4* obs[2]:
-                repulsive_force += 10000 * ((2.4 * obs[2] - distance) / (distance**3)) * diff
+            if distance <= 8* obs[2]:
+                repulsive_force += 10000 * ((2.4 * obs[2] - distance)) * diff
+            
+            if distance <= 5 * obs[2]:
+                self.j = 1
+            elif distance >= 6 * obs[2]:
+                self.j = 0
+                tangent = 0   
+            
+            
 
-            if distance <= 5* obs[2]:
-                # Calculate the direction vector towards the goal
-                direction_to_goal = self.robot_goal - x
-                direction_to_goal /= np.linalg.norm(direction_to_goal)
+            while self.j == 1:
+                # Calculate the vector from the robot to the obstacle
+                diff_to_obs = x - obs[:2]
 
-                # Calculate the tangential direction around the obstacle
-                tangent = np.array([-diff[1], diff[0]])  # Calculate a vector perpendicular to the obstacle
-                tangent /= np.linalg.norm(tangent)  # Normalize the tangent vector
+                # Calculate the tangent direction around the obstacle
+                tangent = np.array([-diff_to_obs[1], diff_to_obs[0]])
 
-                # Calculate the new direction considering both the goal and tangent directions
-                new_direction = (direction_to_goal + tangent) 
+                # Normalize the tangent vector
+                tangent /= np.linalg.norm(tangent)
 
-                # Calculate the next point based on the new direction
-                next_point_of_interest = x + new_direction  # Adjust the magnitude as needed
+                # Calculate the desired position around the obstacle using the tangent
+                next_point_of_interest = tangent*200  # Adjust the distance as needed
 
-                print("next_point_of_interest", next_point_of_interest)
+                print("Next Point of Interest:", next_point_of_interest)
 
-                return np.array([np.linalg.norm(x[0] - next_point_of_interest[0]), np.linalg.norm(x[1] + next_point_of_interest[1])])  # Return the next point of interest
+                vec = np.linalg.norm(next_point_of_interest) 
+
+                print ("vec", vec)
+
+
+                # Return the distance to the next point of interest as a guidance parameter
+                return -next_point_of_interest 
+
 
 
         # Calculate the distance to the robot goal for the updated position
        # updated_distance = np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] ),
        #                              np.linalg.norm(closest_step[1] - self.robot_goal[1] )])
-
+        print("lin_vel", self.linear_vel)
         #return updated_distance
-        return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1] + repulsive_force[1])]) 
-
+       # return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1] + repulsive_force[1])]) 
+        return self.linear_vel 
 # @dataclass
 class Simulation:
     d: float = 2
@@ -678,6 +743,12 @@ class Simulation:
     robot_goal = ([800., 800.])
     robot_radius: float = 5
     fig, ax = plt.subplots()
+    theta: float = 0.  # in radians
+    wheel_radius: float = 1.0  # adjust as needed
+    wheel_distance: float = 2.0  # adjust as needed
+    linear_vel: float = 0.0
+    angular_vel: float = 0.0
+
 
     sim_time: float = 400.0
     step_time: float = 0.1
@@ -734,12 +805,18 @@ class Simulation:
                 self.robot_goal = ([x, y])
 
 
-            if x <= 200:
-                self.myFhFunctions.move_obstacle(-1,-1)
-            elif x <= 1000 and x > 200:
-                self.myFhFunctions.move_obstacle(0,0)    
-            else:
+            if x <= 1000:
+                self.myFhFunctions.move_obstacle(0,0)
+            """elif x <= 400 and x > 200:
                 self.myFhFunctions.move_obstacle(1,1)
+            elif x <= 600 and x > 400:
+                self.myFhFunctions.move_obstacle(0,1)
+            elif x <= 800 and x > 600:
+                self.myFhFunctions.move_obstacle(1,0)
+            elif x <= 1000 and x > 800:
+                self.myFhFunctions.move_obstacle(0,-1) """    
+            #else:
+            #   self.myFhFunctions.move_obstacle(1,1)
             """if x == 700:
                 self.myFhFunctions.setNewGoal(5.0,5.0)
                 self.robot_goal = ([5.0, 5.0])"""
