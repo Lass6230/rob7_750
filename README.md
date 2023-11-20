@@ -6,10 +6,11 @@ Rob 7 group 750 semester project
     
 2.     pip3 install bosdyn-client bosdyn-mission bosdyn-api bosdyn-core
 3.     sudo apt install ros-humble-joint-state-publisher-gui ros-humble-xacro
-4.     cd rob7_750/src
-5.     git clone -b humble https://github.com/Lass6230/spot_ros2.git
-6.     cd ..
-7.     colcon build --symlink-install
+4.     sudo apt install ros-humble-tf-transformations
+5.     cd rob7_750/src
+6.     git clone -b humble https://github.com/Lass6230/spot_ros2.git
+7.     cd ..
+8.     colcon build --symlink-install
     
 
 ## In spot_driver spot_login.yaml
