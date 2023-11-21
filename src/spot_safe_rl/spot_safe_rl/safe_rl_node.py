@@ -47,8 +47,8 @@ class SafeRlNode(Node):
         
 
         self.safe_rl = LB.Simulation()
-        self.goal = [4.5, -2.0]
-        self.safe_rl.setGoal(self.goal[0],self.goal[1])
+        self.goal = [7.5, -1.0, -1.57]
+        self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         self.actccepted_distance = 0.5
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
@@ -93,12 +93,14 @@ class SafeRlNode(Node):
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
+            self.goal = [np.random.random_integers(0,8), np.random.random_integers(-2,2), np.random.random_integers(-3.14,3.14)]
+            self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         else:
             self.safe_rl.setPos(x=x,y=y,rot=rot)
             self.safe_rl.update()
             vel = self.safe_rl.getCmdVel()
         
-            self.publish_cmd_vel(vel[0],vel[1],0.0)
+            self.publish_cmd_vel(vel[0],vel[1],vel[2])
        
 
         # self.ax.clear()

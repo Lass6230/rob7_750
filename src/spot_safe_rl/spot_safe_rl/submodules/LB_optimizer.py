@@ -548,7 +548,7 @@ class FhFunction:
     diagonal_cost: float = 0.5
     k1: float = 5 # Gain for goal attraction
     k2: float = 30 # Gain for obstacle repulsion
-    robot_goal: np.array = ([800., 800.])
+    robot_goal: np.array = ([800., 800., 0.0])
     theta: float = 0.  # in radians
     wheel_radius: float = 1.0  # adjust as needed
     wheel_distance: float = 2.0  # adjust as needed
@@ -565,8 +565,8 @@ class FhFunction:
         self.obs_y_pos += y
         self.obstacle = [(self.obs_x_pos,self.obs_y_pos,50.0)]
     
-    def setNewGoal(self, x, y):
-        self.robot_goal = ([x,y])
+    def setNewGoal(self, x, y, rot):
+        self.robot_goal = ([x,y,rot])
     
     def setPos(self, x, y, rot):
         self.x_pos = x
@@ -647,7 +647,7 @@ class FhFunction:
 
             #     # Return the distance to the next point of interest as a guidance parameter
             #     return next_point_of_interest * 0.9
-        return np.array([0.,0.])    
+        return np.array([0.0,0.0,0.0])    
 
     def f(self, x):
         
@@ -670,8 +670,8 @@ class FhFunction:
 
         
         # Set linear velocity proportional to the distance to the target
-        distance_to_target = np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1])])
-        self.linear_vel = 0.009 * distance_to_target    
+        distance_to_target = np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1]), self.angular_vel])
+        self.linear_vel = 0.005 * distance_to_target    
 
         print("velocity", self.linear_vel)
         #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
@@ -727,8 +727,8 @@ class FhFunction:
         return self.linear_vel 
 # @dataclass
 class Simulation:
-    d: float = 2
-    m: float = 2
+    d: float = 3
+    m: float = 3
     x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
     M0: float = 0.5 / d
@@ -816,7 +816,7 @@ class Simulation:
             no_break = False,
             obstacle = self.obstacle,
             )
-        self.myFhFunctions.setNewGoal(2.0,-2.0)
+        self.myFhFunctions.setNewGoal(2.0,-2.0, 0.0)
         self.opt.initial()
         
         # # self.opt.run_average_experiment()
@@ -849,9 +849,9 @@ class Simulation:
         # plt.show()
         # print("done")
     
-    def setGoal(self,x,y):
-        self.myFhFunctions.setNewGoal(x,y)
-        robot_goal = ([x, y])
+    def setGoal(self,x,y,rot):
+        self.myFhFunctions.setNewGoal(x,y,rot)
+        robot_goal = ([x, y, rot])
     # def setStart(self,x,y)
 
     def setObstacles(self, obstacles):
@@ -867,11 +867,11 @@ class Simulation:
             return False
     
     def setPos(self,x,y,rot):
-        self.opt.x_last = [x,y]
+        self.opt.x_last = [x,y,rot]
         
     
     def getCmdVel(self):
-        return self.opt.cmd_vel[0], self.opt.cmd_vel[1]
+        return self.opt.cmd_vel[0], self.opt.cmd_vel[1], self.opt.cmd_vel[2]
 
 
     def update(self):
