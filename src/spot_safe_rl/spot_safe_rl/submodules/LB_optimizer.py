@@ -120,6 +120,7 @@ class SafeLogBarrierOptimizer:
     This class allows to run LB-SGD optimization procedure given the oracle for the objective f and constraint h. 
     """
     x_last = None
+    cmd_vel = None
     obstacle_list: list = None
     obstacle: np.array = None
     obs_pos_x: float = 50.0
@@ -158,6 +159,7 @@ class SafeLogBarrierOptimizer:
     factor: float = 0.5
     runtimes: list = None
     t_count: int = 0
+    previous_time: float = 0.0
     
     def compute_gamma(self, t: int) -> float:
         """
@@ -484,7 +486,9 @@ class SafeLogBarrierOptimizer:
             self.xs = []
             # x_trajectory = [] # added
             xt = self.x0
-            self.x_last = self.x0
+            self.x0 = self.x_last
+            # self.x_last = self.x0
+
             #print("im,xt",xt)
             # Tk = 0    
         
@@ -498,9 +502,13 @@ class SafeLogBarrierOptimizer:
         gamma = self.compute_gamma(self.t_count)
         
         # if not(step_norm < self.eta and self.no_break == False):
-            
+
+
 
         xt = self.x_last - gamma * self.step # calculate and update policy
+
+        self.cmd_vel = (xt-self.x_last)/(time()-self.previous_time)
+
         #print("xt", xt)
         # Tk += 1
         
@@ -525,6 +533,8 @@ class SafeLogBarrierOptimizer:
             self.x0 = self.x_last
             self.eta = self.eta * self.factor
             print("WE ETA SPAGETT TONIGHT", self.eta)
+
+        self.previous_time = time()
         return xt#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
           
   
@@ -601,40 +611,42 @@ class FhFunction:
         stop_force = np.array([0., 0.])
         kill_force = np.array([0., 0.])
 
-        """for obs in self.obstacle:
-            diff = x - obs[:2]
-            distance = np.linalg.norm(diff)
+        # for obs in self.obstacle:
+        #     diff = x - obs[:2]
+        #     distance = np.linalg.norm(diff)
 
-            if distance <= 8* obs[2]:
-                repulsive_force += 10000 * ((2.4 * obs[2] - distance)) * diff
+        #     if distance <= 8* obs[2]:
+        #         repulsive_force += 10000 * ((2.4 * obs[2] - distance)) * diff
+
+        #         return repulsive_force
+
+        #     if distance <= 5 * obs[2]:
+        #         self.j = 1
+        #     elif distance >= 8 * obs[2]:
+        #         self.j = 0    
             
-            if distance <= 5 * obs[2]:
-                self.j = 1
-            elif distance >= 8 * obs[2]:
-                self.j = 0    
-            
             
 
-            while self.j == 1:
-                # Calculate the vector from the robot to the obstacle
-                diff_to_obs = x - obs[:2]
+            # while self.j == 1:
+            #     # Calculate the vector from the robot to the obstacle
+            #     diff_to_obs = x - obs[:2]
 
-                # Calculate the tangent direction around the obstacle
-                tangent = np.array([diff_to_obs[1]- 100 , -diff_to_obs[0]])
+            #     # Calculate the tangent direction around the obstacle
+            #     tangent = np.array([diff_to_obs[1]- 100 , -diff_to_obs[0]])
 
-                # Normalize the tangent vector
-                tangent /= np.linalg.norm(tangent)
+            #     # Normalize the tangent vector
+            #     tangent /= np.linalg.norm(tangent)
 
-                # Calculate the desired position around the obstacle using the tangent
-                next_point_of_interest = x + 5 * tangent  # Adjust the distance as needed
+            #     # Calculate the desired position around the obstacle using the tangent
+            #     next_point_of_interest = x + 5 * tangent  # Adjust the distance as needed
 
-                print("Next Point of Interest:", next_point_of_interest)
+            #     print("Next Point of Interest:", next_point_of_interest)
 
                 
 
 
-                # Return the distance to the next point of interest as a guidance parameter
-                return next_point_of_interest * 0.9"""
+            #     # Return the distance to the next point of interest as a guidance parameter
+            #     return next_point_of_interest * 0.9
         return np.array([0.,0.])    
 
     def f(self, x):
@@ -659,7 +671,7 @@ class FhFunction:
         
         # Set linear velocity proportional to the distance to the target
         distance_to_target = np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1])])
-        self.linear_vel = 0.09 * distance_to_target    
+        self.linear_vel = 0.009 * distance_to_target    
 
         print("velocity", self.linear_vel)
         #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
@@ -717,7 +729,7 @@ class FhFunction:
 class Simulation:
     d: float = 2
     m: float = 2
-    x00: np.array = np.array([5, 5])
+    x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
     M0: float = 0.5 / d
     Ms: np.array = 0.000001 * np.ones(m)
@@ -804,7 +816,7 @@ class Simulation:
             no_break = False,
             obstacle = self.obstacle,
             )
-        self.myFhFunctions.setNewGoal(1,1)
+        self.myFhFunctions.setNewGoal(2.0,-2.0)
         self.opt.initial()
         
         # # self.opt.run_average_experiment()
@@ -839,21 +851,26 @@ class Simulation:
     
     def setGoal(self,x,y):
         self.myFhFunctions.setNewGoal(x,y)
-    
+        robot_goal = ([x, y])
     # def setStart(self,x,y)
 
 
-    def reachedGoal(self,pos):
+    def reachedGoal(self,pos, ok_distance):
         goal = np.asarray(self.robot_goal)
         pos = np.asarray(pos)
         distance=math.sqrt(pow(goal[0]-pos[0],2)+pow(goal[1]-pos[1],2))
-        if distance < 5:
+        if distance < ok_distance:
             return True
         else:
             return False
     
     def setPos(self,x,y,rot):
-        self.myFhFunctions.setPos(x,y,rot)
+        self.opt.x_last = [x,y]
+        
+    
+    def getCmdVel(self):
+        return self.opt.cmd_vel[0], self.opt.cmd_vel[1]
+
 
     def update(self):
         xt = self.opt.update()

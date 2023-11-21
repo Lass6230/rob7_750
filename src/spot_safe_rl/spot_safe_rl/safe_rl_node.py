@@ -24,7 +24,7 @@ class SafeRlNode(Node):
     def __init__(self):
         super().__init__('safe_rl_node')
 
-        self.safe_rl = LB.Simulation()
+        
 
 
         self.cmd_vel_publisher_ = self.create_publisher(Twist, 'cmd_vel', 10)
@@ -43,6 +43,13 @@ class SafeRlNode(Node):
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.target_frame = "base_link"
         self.from_frame = "odom"
+        
+        
+
+        self.safe_rl = LB.Simulation()
+        self.goal = [2.0, -2.0]
+        self.safe_rl.setGoal(self.goal[0],self.goal[1])
+        self.actccepted_distance = 0.5
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
                                           history=rclpy.qos.HistoryPolicy.KEEP_LAST,
@@ -64,7 +71,15 @@ class SafeRlNode(Node):
         # print("sensor callback")
 
         x,y,rot = self.location()
-        self.safe_rl.setPos(x=x,y=y,rot=rot)
+        if self.goalChecker(x,y):
+            self.publish_cmd_vel(0.0,0.0,0.0)
+            self.get_logger().info('Goal Reached')
+        else:
+            self.safe_rl.setPos(x=x,y=y,rot=rot)
+            self.safe_rl.update()
+            vel = self.safe_rl.getCmdVel()
+        
+            self.publish_cmd_vel(vel[0],vel[1],0.0)
         # self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
         # obstacles_x = []
         # obstacles_y = []
@@ -91,12 +106,7 @@ class SafeRlNode(Node):
         # self.ax.scatter(y,x,color='red')
         # self.ax.scatter(obstacles_y,obstacles_x)
         # plt.pause(0.005)
-       
-        vel = self.safe_rl.update()
-        if vel.any() == None:
-            self.publish_cmd_vel(0.0,0.0,0.0)
-        else:
-            self.publish_cmd_vel(vel[0],vel[1],0.0)
+        
 
     def location(self):
         # msg = String()
@@ -137,6 +147,16 @@ class SafeRlNode(Node):
         
         data.angular.z = z_rot_vel
         self.cmd_vel_publisher_.publish(data)
+    
+    def goalChecker(self,x,y):
+        distance=math.sqrt(pow(self.goal[0]-x,2)+pow(self.goal[1]-y,2))
+        if distance < self.actccepted_distance:
+            return True
+        else:
+            return False
+        
+        
+        # return self.safe_rl.reachedGoal(pos=[x,y],ok_distance=self.actccepted_distance)
 
 def main(args=None):
     rclpy.init(args=args)
