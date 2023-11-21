@@ -47,7 +47,7 @@ class SafeRlNode(Node):
         
 
         self.safe_rl = LB.Simulation()
-        self.goal = [2.0, -2.0]
+        self.goal = [4.5, -2.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1])
         self.actccepted_distance = 0.5
 
@@ -69,8 +69,27 @@ class SafeRlNode(Node):
 
     def sensor_callback(self, msg):
         # print("sensor callback")
-
         x,y,rot = self.location()
+        
+        # self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
+        obstacles_x = []
+        obstacles_y = []
+        obstacles = [()]
+        # obstacles_x.append(math.cos(msg.angle_min+(1*msg.angle_increment))*msg.ranges[0])
+        # self.get_logger().info('X: "%f"' % obstacles_x[0])
+        # self.get_logger().info('X: "%f" ' % x)
+        # self.get_logger().info('Y: "%f"' % y)
+        for i in range(len(msg.ranges)):
+            
+            # obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
+            # obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)
+            obstacles.append([((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x), ((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)])
+            
+            
+        self.safe_rl.setObstacles(obstacles=obstacles)
+
+
+        
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
@@ -80,27 +99,7 @@ class SafeRlNode(Node):
             vel = self.safe_rl.getCmdVel()
         
             self.publish_cmd_vel(vel[0],vel[1],0.0)
-        # self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
-        # obstacles_x = []
-        # obstacles_y = []
-        # # obstacles_x.append(math.cos(msg.angle_min+(1*msg.angle_increment))*msg.ranges[0])
-        # # self.get_logger().info('X: "%f"' % obstacles_x[0])
-        # self.get_logger().info('X: "%f" ' % x)
-        # self.get_logger().info('Y: "%f"' % y)
-        # for i in range(len(msg.ranges)):
-        #     # obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.cos(rot)-math.sin(rot))-x)
-        #     # obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])*(math.sin(rot)-math.cos(rot))+y)
-        #     obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
-        #     obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)
-        #     # if msg.angle_min+(i*msg.angle_increment) < 0.0:
-        #     #     obstacles_x.append(-math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
-        #     #     obstacles_y.append(-math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
-        #     # else:
-        #     #     obstacles_x.append(math.cos(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
-        #     #     obstacles_y.append(math.sin(msg.angle_min+(i*msg.angle_increment))*msg.ranges[i])
-        #     # self.get_logger().info('X: "%f" ' % obstacles_x[i])
-        #     # self.get_logger().info('Y: "%f"' % obstacles_y[i])
-        
+       
 
         # self.ax.clear()
         # self.ax.scatter(y,x,color='red')

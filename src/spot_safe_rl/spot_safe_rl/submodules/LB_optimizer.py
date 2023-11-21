@@ -854,6 +854,8 @@ class Simulation:
         robot_goal = ([x, y])
     # def setStart(self,x,y)
 
+    def setObstacles(self, obstacles):
+        self.myFhFunctions.obstacle = obstacles
 
     def reachedGoal(self,pos, ok_distance):
         goal = np.asarray(self.robot_goal)
