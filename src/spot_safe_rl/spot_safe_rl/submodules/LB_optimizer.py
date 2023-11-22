@@ -542,7 +542,7 @@ class SafeLogBarrierOptimizer:
 
 # @dataclass
 class FhFunction:
-    obstacle: np.array = [(500., 500., 50.)]
+    obstacle: np.array = None
     obs_x_pos: float = 500.
     obs_y_pos: float = 500.
     diagonal_cost: float = 0.5
@@ -667,16 +667,37 @@ class FhFunction:
         # Set angular velocity proportional to the angle difference
         self.angular_vel = 0.05 * angle_diff
 
+        print("BEFPRE")
+        flattened_obs = [item for item in self.obstacle if isinstance(item, list) and item != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
+        distances_to_obs = [np.linalg.norm(np.array(array)) for array in flattened_obs]
+        print("AFter")
+        # Find the index of the array closest to 0
+        closest_obs = np.argmin(distances_to_obs)
+
+        # Get the original array that is closest to 0
+        closest_array = flattened_obs[closest_obs]
+
+        print("Array closest to 0:", closest_array)
+        print("IM CLOSE", closest_obs)
 
         
         # Set linear velocity proportional to the distance to the target
         distance_to_target = np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1]), self.angular_vel])
-        self.linear_vel = 0.005 * distance_to_target    
+        self.linear_vel = 0.006 * distance_to_target    
 
-        print("velocity", self.linear_vel)
+
+        length_to_obs = np.linalg.norm(closest_array[0] - x[0]) + np.linalg.norm(closest_array[1] - x[1])
+
+        print("I AM SPOT", x)
+
+        print("WOW A BOX GIVE ME", length_to_obs)
+
+        #print("velocity", self.linear_vel)
         #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
         repulsive_force = np.array([0., 0.])
         new_pos = np.array([0., 0.])
+
+
 
         """for obs in self.obstacle:
             diff = x - obs[:2]
@@ -757,7 +778,7 @@ class Simulation:
     delta: float = 0.1
     factor: float = 0.9
     runtimes: list = None
-    obstacle: np.array = ([500.0, 500.0, 50])
+    obstacle: np.array = None
     n: int = 5
     n_iters: int = 800
     nu: float = 0.01
