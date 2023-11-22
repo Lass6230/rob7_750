@@ -878,6 +878,17 @@ class Simulation:
     def setObstacles(self, obstacles):
         self.myFhFunctions.obstacle = obstacles
 
+    def closest_arrays_to_zero(self,arrays, n):
+        filtered_arrays = [item for item in arrays if isinstance(item, list) and item != [float('inf'), float('inf')]]
+        distances = [(np.linalg.norm(np.array(array)), array) for array in filtered_arrays]
+        distances.sort(key=lambda x: x[0])  # Sort distances from smallest to largest
+        
+        closest_n_arrays = [array for distance, array in distances[:n]]
+
+        return closest_n_arrays
+        #### NEEED TO CONNECT TO F AND H FUNCTION
+        #        
+
     def reachedGoal(self,pos, ok_distance):
         goal = np.asarray(self.robot_goal)
         pos = np.asarray(pos)

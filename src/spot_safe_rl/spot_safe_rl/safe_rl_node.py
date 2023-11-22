@@ -88,6 +88,8 @@ class SafeRlNode(Node):
             
         self.safe_rl.setObstacles(obstacles=obstacles)
 
+        
+
         flattened_obs = [item for item in obstacles if isinstance(item, list) and item != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
         distances_to_obs = [np.linalg.norm(np.array(array)) for array in flattened_obs]
         
@@ -109,12 +111,22 @@ class SafeRlNode(Node):
             self.publish_cmd_vel(vel[0],vel[1],vel[2])
        
 
+        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 5)
+
+        print("WOW THATS ALOT OF ARRAY",close)
+
         self.ax.clear()
         self.ax.scatter(y,x,color='red')
         self.ax.scatter(obstacles_y,obstacles_x)
-        self.ax.scatter(closest_array[1], closest_array[0], color='magenta')
+        # Plot each point from the 'close' arrays
+        for point in close:
+            self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
+
         plt.pause(0.005)
-        
+
+
+
+
 
     def location(self):
         # msg = String()
