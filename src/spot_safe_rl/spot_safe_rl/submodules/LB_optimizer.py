@@ -762,7 +762,7 @@ class Simulation:
     step: np.array = None
     reg: float = None
     # x_opt: float = None
-    T: int = 3
+    T: int = 1
     K: int = None
     experiments_num: int = 2
     mu: float = None
@@ -779,8 +779,8 @@ class Simulation:
     factor: float = 0.9
     runtimes: list = None
     obstacle: np.array = None
-    n: int = 5
-    n_iters: int = 800
+    n: int = 55
+    n_iters: int = 1000
     nu: float = 0.01
     grid_size = (1000, 1000)
     robot_start = ([0., 0.])

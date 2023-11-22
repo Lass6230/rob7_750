@@ -115,14 +115,14 @@ class SafeRlNode(Node):
 
         print("WOW THATS ALOT OF ARRAY",close)
 
-        self.ax.clear()
-        self.ax.scatter(y,x,color='red')
-        self.ax.scatter(obstacles_y,obstacles_x)
+        #self.ax.clear()
+        #self.ax.scatter(y,x,color='red')
+        #self.ax.scatter(obstacles_y,obstacles_x)
         # Plot each point from the 'close' arrays
-        for point in close:
-            self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
+        #for point in close:
+        #    self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
 
-        plt.pause(0.005)
+        #plt.pause(0.005)
 
 
 
