@@ -47,7 +47,7 @@ class SafeRlNode(Node):
         
 
         self.safe_rl = LB.Simulation()
-        self.goal = [6, 0, 0]
+        self.goal = [8, 0, 0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         self.actccepted_distance = 0.5
 
@@ -111,18 +111,18 @@ class SafeRlNode(Node):
             self.publish_cmd_vel(vel[0],vel[1],vel[2])
        
 
-        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 5)
+        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 20)
 
         print("WOW THATS ALOT OF ARRAY",close)
 
-        #self.ax.clear()
-        #self.ax.scatter(y,x,color='red')
-        #self.ax.scatter(obstacles_y,obstacles_x)
+        self.ax.clear()
+        self.ax.scatter(y,x,color='red')
+        self.ax.scatter(obstacles_y,obstacles_x)
         # Plot each point from the 'close' arrays
-        #for point in close:
-        #    self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
+        for point in close:
+            self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
 
-        #plt.pause(0.005)
+        plt.pause(0.005)
 
 
 
