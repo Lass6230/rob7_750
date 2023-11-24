@@ -434,7 +434,7 @@ class SafeLogBarrierOptimizer:
     def update(self):
         x_traj_k = self.barrier_SGD_non_block()
             
-        print("optimaizer")
+        # print("optimaizer")
         return x_traj_k
 
     def initial(self):
@@ -478,7 +478,7 @@ class SafeLogBarrierOptimizer:
 
 
     def barrier_SGD_non_block(self):
-        print("non block barrier_SGD")
+        # print("non block barrier_SGD")
         """
         Runs LB_SGD with constant parameter eta
         """
@@ -532,7 +532,7 @@ class SafeLogBarrierOptimizer:
         if self.t_count == 0:
             self.x0 = self.x_last
             self.eta = self.eta * self.factor
-            print("WE ETA SPAGETT TONIGHT", self.eta)
+            # print("WE ETA SPAGETT TONIGHT", self.eta)
 
         self.previous_time = time()
         return xt#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
@@ -549,16 +549,18 @@ class FhFunction:
     k1: float = 5 # Gain for goal attraction
     k2: float = 30 # Gain for obstacle repulsion
     robot_goal: np.array = ([800., 800., 0.0])
-    theta: float = 0.  # in radians
+    theta: float = 0.0  # in radians
     wheel_radius: float = 1.0  # adjust as needed
     wheel_distance: float = 2.0  # adjust as needed
     linear_vel: float = 0.0
     angular_vel: float = 0.0
     j: int = 0
-
     x_pos: float = 0.0
     y_pos: float = 0.0
     rot_pos: float = 0.0
+    ok_distance: float = 0.3
+    def __init__(self, ok_distance):
+        self.ok_distance = ok_distance
 
     def move_obstacle(self,x,y):
         self.obs_x_pos += x
@@ -655,28 +657,54 @@ class FhFunction:
                       self.linear_vel * math.sin(self.theta),
                       self.angular_vel / self.wheel_distance]
         
-        target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
+        target_angle = math.atan2((self.robot_goal[1] - x[1]), (self.robot_goal[0] - x[0]))
         
-        angle_diff = target_angle - self.theta
-
-        while angle_diff > math.pi:
-            angle_diff -= 2 * math.pi
-        while angle_diff < -math.pi:
-            angle_diff += 2 * math.pi
+        # if 
+        
+        # angle_diff = 4*np.linalg.norm(target_angle - x[2])
+        angle_diff = np.linalg.norm(target_angle - x[2])
+        
+        # while angle_diff > math.pi:
+        #     angle_diff -= 2 * math.pi
+        # while angle_diff < -math.pi:
+        #     angle_diff += 2 * math.pi
 
         # Set angular velocity proportional to the angle difference
-        self.angular_vel = 0.05 * angle_diff
-
-
+        #0.05 * angle_diff
+        self.angular_vel = angle_diff
+        # self.angular_vel = 0
+        lin_factor = 0.005
+        ang_factor = 0.0095
+        if angle_diff > 0.5:
+            lin_factor = 0.003
+            ang_factor = 0.04
+        else:
+            lin_factor = 0.01
+            ang_factor = 0.0015
         
         # Set linear velocity proportional to the distance to the target
-        distance_to_target = np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1]), self.angular_vel])
-        self.linear_vel = 0.005 * distance_to_target    
+        distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor*np.linalg.norm(self.robot_goal[1] - x[1]), ang_factor*self.angular_vel])
+        # self.linear_vel = 0.005 * distance_to_target    
+        self.linear_vel = distance_to_target 
+        # print("velocity", self.linear_vel)
 
-        print("velocity", self.linear_vel)
+        # if angle_diff < 0.05:
+        #     self.linear_vel[2] = 0.005*np.linalg.norm(0.0)
+        #     self.linear_vel[0] = 0.005*np.linalg.norm(self.robot_goal[0] - x[0])
+        #     self.linear_vel[1] = 0.005*np.linalg.norm(self.robot_goal[1] - x[1])
+        #     # print("angular_taget: " , self.linear_vel)
+        #     return self.linear_vel
+        # else:
+        #     self.linear_vel[0] = 0.0025*np.linalg.norm(0.0)
+        #     self.linear_vel[1] = 0.0025 *np.linalg.norm(0.0)
+        #     self.linear_vel[2] = 0.0095 *np.linalg.norm(target_angle - x[2])
+        #     # print("angular_taget: " , self.linear_vel)
+        #     return self.linear_vel
+
+        
         #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
-        repulsive_force = np.array([0., 0.])
-        new_pos = np.array([0., 0.])
+        # repulsive_force = np.array([0., 0.])
+        # new_pos = np.array([0., 0.])
 
         """for obs in self.obstacle:
             diff = x - obs[:2]
@@ -721,7 +749,7 @@ class FhFunction:
         # Calculate the distance to the robot goal for the updated position
        # updated_distance = np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] ),
        #                              np.linalg.norm(closest_step[1] - self.robot_goal[1] )])
-        print("lin_vel", self.linear_vel)
+        # print("lin_vel", self.linear_vel)
         #return updated_distance
        # return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1] + repulsive_force[1])]) 
         return self.linear_vel 
@@ -771,14 +799,17 @@ class Simulation:
     wheel_distance: float = 2.0  # adjust as needed
     linear_vel: float = 0.0
     angular_vel: float = 0.0
-
+    ok_distance: float = 0.3
 
     sim_time: float = 400.0
     step_time: float = 0.1
 
-    def __init__(self):
+    def __init__(self, ok_distance):
+        self.ok_distance = ok_distance
         print("init simulation")
-        self.myFhFunctions = FhFunction()
+        self.myFhFunctions = FhFunction(
+            ok_distance = self.ok_distance,
+        )
         self.my_oracle = Oracle(
             f = self.myFhFunctions.f,
             h = self.myFhFunctions.h, 

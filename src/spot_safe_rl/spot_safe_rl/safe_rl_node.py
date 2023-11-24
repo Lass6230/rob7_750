@@ -45,11 +45,11 @@ class SafeRlNode(Node):
         self.from_frame = "odom"
         
         
-
-        self.safe_rl = LB.Simulation()
-        self.goal = [7.5, -1.0, -1.57]
+        self.actccepted_distance = 0.3
+        self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
+        self.goal = [-2.5,1.5, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
-        self.actccepted_distance = 0.5
+        
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
                                           history=rclpy.qos.HistoryPolicy.KEEP_LAST,
@@ -64,8 +64,17 @@ class SafeRlNode(Node):
 
         self.count = 0
 
+        # self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel_test",self.cmd_vel_tester,10)
+        # self.cmd_vel_sub
+
         # self.i = 0
         # sim = LB.Simulation()
+    def cmd_vel_tester(self, msg):
+        x,y,rot = self.location()
+        x_vel = msg.linear.x*math.cos(-rot)-msg.linear.y*math.sin(-rot)
+        y_vel = msg.linear.y*math.cos(-rot)+msg.linear.x*math.sin(-rot)
+        rot_vel = msg.angular.z
+        self.publish_cmd_vel(x_vel,y_vel,rot_vel)
 
     def sensor_callback(self, msg):
         # print("sensor callback")
@@ -83,8 +92,8 @@ class SafeRlNode(Node):
             
             # obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
             # obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)
-            obstacles.append([((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x), ((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)])
-            
+            obstacles.append([((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x), ((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)]) # mabye adding the offset from baselink
+            # mabye adding the offset from baselink
             
         self.safe_rl.setObstacles(obstacles=obstacles)
 
@@ -93,14 +102,32 @@ class SafeRlNode(Node):
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
-            self.goal = [np.random.random_integers(0,8), np.random.random_integers(-2,2), np.random.random_integers(-3.14,3.14)]
+            self.goal = [np.random.random_integers(-4,4), np.random.random_integers(-2,2), np.random.random_integers(-3.14,3.14)]
             self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         else:
             self.safe_rl.setPos(x=x,y=y,rot=rot)
             self.safe_rl.update()
             vel = self.safe_rl.getCmdVel()
-        
-            self.publish_cmd_vel(vel[0],vel[1],vel[2])
+            x_vel = vel[0]*math.cos(-rot)-vel[1]*math.sin(-rot)
+            y_vel = vel[1]*math.cos(-rot)+vel[0]*math.sin(-rot)
+            # x_vel = vel[0]
+            # y_vel = vel[1]
+            rot_vel = vel[2]
+            if x_vel > 1.0:
+                x_vel = 1.0
+            if y_vel > 1.0:
+                y_vel = 1.0
+            if rot_vel > 1.0:
+                rot_vel = 1.0
+            if x_vel < -1.0:
+                x_vel = -1.0
+            if y_vel < -1.0:
+                y_vel = -1.0
+            if rot_vel < -1.0:
+                rot_vel = -1.0
+            self.publish_cmd_vel(x_vel,y_vel,rot_vel)
+            
+            # self.publish_cmd_vel(vel[0],vel[1],vel[2])
        
 
         # self.ax.clear()
@@ -125,6 +152,7 @@ class SafeRlNode(Node):
                         f'got transform {self.target_frame} to {self.target_frame}')
             self.get_logger().info('x: "%f"' % t.transform.translation.x)
             self.get_logger().info('y: "%f"' % t.transform.translation.y)
+            
             orientation_list = [t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w]
 
             (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
@@ -132,6 +160,7 @@ class SafeRlNode(Node):
             self.pose_yaw = yaw
 
             self.get_logger().info('z_rot: "%f"' % yaw)
+            self.get_logger().info('GOAL: "%s"' % str(self.goal))
             return t.transform.translation.x, t.transform.translation.y, yaw
         except TransformException as ex:
             self.get_logger().info(
