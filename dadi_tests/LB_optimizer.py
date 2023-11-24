@@ -171,6 +171,7 @@ class SafeLogBarrierOptimizer:
         dhs = self.oracle.constraints_grad
         
         alphas_reg = alphas
+        print("aplha_Reg", alphas_reg)
         L_dirs = np.zeros(self.m)
         for i in range(self.m):
             L_dirs[i] = np.abs((dhs[i].dot(self.step)) / step_norm) +\
@@ -195,9 +196,13 @@ class SafeLogBarrierOptimizer:
         df_e = self.oracle.objective_grad
         #print("df_e", df_e)
         denominators = 1. / np.maximum(np.ones(self.m) * self.reg, alphas)
-        #print("denominators", denominators)
+        print("denominators", denominators)
+        print("alphas",alphas)
+        print("m", self.m)
+        
         dB = df_e + self.eta * jacobian.T.dot(denominators)
         #print("eta", self.eta)
+
         return dB
     
     def barrier_SGD(self):
@@ -536,6 +541,7 @@ class FhFunction:
     obs_x_pos: float = 500.
     obs_y_pos: float = 500.
     diagonal_cost: float = 0.5
+    m: int = 2
     k1: float = 5 # Gain for goal attraction
     k2: float = 30 # Gain for obstacle repulsion
     robot_goal: np.array = ([800., 800.])
@@ -578,24 +584,26 @@ class FhFunction:
         distance_to_target = math.sqrt((self.robot_goal[0] - x[0])**2 + (self.robot_goal[1] - x[1])**2)
         self.linear_vel = 0.9 * distance_to_target    
 
-        print("velocity", self.linear_vel)
+        #print("velocity", self.linear_vel)
         #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
         repulsive_force = np.array([0., 0.])
         new_pos = np.array([0., 0.])
 
             
 
-        repulsive_force = np.array([0., 0.])
         stop_force = np.array([0., 0.])
         kill_force = np.array([0., 0.])
 
-        """for obs in self.obstacle:
+        for obs in self.obstacle:
             diff = x - obs[:2]
             distance = np.linalg.norm(diff)
 
-            if distance <= 8* obs[2]:
-                repulsive_force += 10000 * ((2.4 * obs[2] - distance)) * diff
-            
+            if  distance >= 5 * obs[2]:
+                repulsive_force -= distance
+
+            if distance <= 5* obs[2]:
+                repulsive_force += np.linalg.norm(x) + np.linalg.norm(diff) * diff / distance
+        """    
             if distance <= 5 * obs[2]:
                 self.j = 1
             elif distance >= 8 * obs[2]:
@@ -623,7 +631,9 @@ class FhFunction:
 
                 # Return the distance to the next point of interest as a guidance parameter
                 return next_point_of_interest * 0.9"""
-        return np.array([0.,0.])    
+        print("repulsive_force", repulsive_force)
+        #return np.array([0.,0.])  
+        return repulsive_force/ 100  
 
     def f(self, x):
         
@@ -648,9 +658,9 @@ class FhFunction:
         
         # Set linear velocity proportional to the distance to the target
         distance_to_target = np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1])])
-        self.linear_vel = 0.9 * distance_to_target    
+        self.linear_vel =  distance_to_target    
 
-        print("velocity", self.linear_vel)
+        #print("velocity", self.linear_vel)
         #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
         repulsive_force = np.array([0., 0.])
         new_pos = np.array([0., 0.])
@@ -698,7 +708,7 @@ class FhFunction:
         # Calculate the distance to the robot goal for the updated position
        # updated_distance = np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] ),
        #                              np.linalg.norm(closest_step[1] - self.robot_goal[1] )])
-        print("lin_vel", self.linear_vel)
+        #print("lin_vel", self.linear_vel)
         #return updated_distance
        # return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1] + repulsive_force[1])]) 
         return self.linear_vel 
@@ -709,14 +719,14 @@ class Simulation:
     x00: np.array = np.array([5, 5])
     x0: np.array = None
     M0: float = 0.5 / d
-    Ms: np.array = 0.000001 * np.ones(m)
-    sigma: float = 0.000001
+    Ms: np.array = 0.001 * np.ones(m)
+    sigma: float = 0.001
     hat_sigma: float = 0.0001
     init_std: float = 0.05 
-    eta0: float = 0.01
+    eta0: float = 0.05
     eta: float = None
     step: np.array = None
-    reg: float = None
+    reg = 0.1
     # x_opt: float = None
     T: int = 3
     K: int = None
@@ -782,12 +792,12 @@ class Simulation:
             h = self.myFhFunctions.h,
             d = self.d,
             m = self.m,
-            reg = 0.1,
+            reg = self.reg,
             factor = self.factor,
             T = self.T,
             K = int(self.n_iters / self.T / 2. / self.n),
             experiments_num = self.experiments_num,
-            mu = 0.,
+            mu = self.mu,
             convex = False,
             random_init = True,
             no_break = False,
