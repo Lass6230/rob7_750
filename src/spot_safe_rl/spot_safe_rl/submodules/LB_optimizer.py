@@ -679,9 +679,10 @@ class FhFunction:
             lin_factor = 0.003
             ang_factor = 0.04
         else:
-            lin_factor = 0.01
-            ang_factor = 0.0015
+            lin_factor = 0.011
+            ang_factor = 0.001
         
+        ang_factor = 0.001
         # Set linear velocity proportional to the distance to the target
         distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor*np.linalg.norm(self.robot_goal[1] - x[1]), ang_factor*self.angular_vel])
         # self.linear_vel = 0.005 * distance_to_target    
