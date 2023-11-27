@@ -134,7 +134,7 @@ class SafeRlNode(Node):
         
         close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 20)
 
-        print("WOW THATS ALOT OF ARRAY",close)
+        # print("WOW THATS ALOT OF ARRAY",close)
 
         self.ax.clear()
         self.ax.scatter(y,x,color='red')

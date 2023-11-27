@@ -560,7 +560,7 @@ class FhFunction:
     rot_pos: float = 0.0
     ok_distance: float = 0.3
     closest_points: np.array = None
-    
+
     def __init__(self, ok_distance):
         self.ok_distance = ok_distance
 
@@ -613,21 +613,21 @@ class FhFunction:
                         distances_y = [np.linalg.norm(p[1] - x[1])]
                         base = np.array(-distances_x,-distances_y, angle_diff)
                         print("I DO NOTHING", base)
-                        #return base
+                        return base
                 else:
                     return np.array([0.0,0.0,0.0])        
 
             if close_point_array:
                 
                 apple = min(p for p in close_point_array)
-                print("APPPLE TIME",apple)
+                # print("APPPLE TIME",apple)
                 distances_x = [np.linalg.norm(apple[0] - x[0]) ]
                 distances_y = [np.linalg.norm(apple[1] - x[1])]
                 min_distance_x = min(distances_x)
                 min_distance_y = min(distances_y)
                 get_away = 0.003 * np.array([min_distance_x, min_distance_y, angle_diff])
-                #print("This smells", get_away)
-                #return get_away
+                print("This smells", get_away)
+                return get_away
             
         return np.array([0.0,0.0,0.0]) 
 
