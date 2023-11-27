@@ -577,7 +577,7 @@ class FhFunction:
 
     def h(self, x):
 
-        
+        close_point_array = []
 
         step_costs = [self.linear_vel * math.cos(self.theta),
                             self.linear_vel * math.sin(self.theta),
@@ -595,61 +595,42 @@ class FhFunction:
         # Set angular velocity proportional to the angle difference
         self.angular_vel = 0.05 * angle_diff
 
+        closest_obstacle = self.closest_points
 
         
-        # Set linear velocity proportional to the distance to the target
-        distance_to_target = math.sqrt((self.robot_goal[0] - x[0])**2 + (self.robot_goal[1] - x[1])**2)
-        self.linear_vel = 0.09 * distance_to_target    
+        
+        if closest_obstacle is not None:
+            for point in closest_obstacle:
+                length_to_obs = np.linalg.norm(np.array(point) - np.array(x)[:2])
+                if length_to_obs <= 2:
+                    close_point_array.append(point)
+                elif length_to_obs is not None and length_to_obs>2:
+                    close_point_array.clear()
+                    for p in close_point_array:
+                        distances_x = [np.linalg.norm(p[0] - x[0]) ]
+                        distances_y = [np.linalg.norm(p[1] - x[1])]
+                        base = np.array(-distances_x,-distances_y, angle_diff)
+                        print("I DO NOTHING", base)
+                        #return base
+                else:
+                    return np.array([0.0,0.0,0.0])        
 
-        # print("velocity", self.linear_vel)
-
-        #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
-        repulsive_force = np.array([0., 0.])
-        new_pos = np.array([0., 0.])
-
-            
-
-        repulsive_force = np.array([0., 0.])
-        stop_force = np.array([0., 0.])
-        kill_force = np.array([0., 0.])
-
-        # for obs in self.obstacle:
-        #     diff = x - obs[:2]
-        #     distance = np.linalg.norm(diff)
-
-        #     if distance <= 8* obs[2]:
-        #         repulsive_force += 10000 * ((2.4 * obs[2] - distance)) * diff
-
-        #         return repulsive_force
-
-        #     if distance <= 5 * obs[2]:
-        #         self.j = 1
-        #     elif distance >= 8 * obs[2]:
-        #         self.j = 0    
-            
-            
-
-            # while self.j == 1:
-            #     # Calculate the vector from the robot to the obstacle
-            #     diff_to_obs = x - obs[:2]
-
-            #     # Calculate the tangent direction around the obstacle
-            #     tangent = np.array([diff_to_obs[1]- 100 , -diff_to_obs[0]])
-
-            #     # Normalize the tangent vector
-            #     tangent /= np.linalg.norm(tangent)
-
-            #     # Calculate the desired position around the obstacle using the tangent
-            #     next_point_of_interest = x + 5 * tangent  # Adjust the distance as needed
-
-            #     print("Next Point of Interest:", next_point_of_interest)
-
+            if close_point_array:
                 
+                apple = min(p for p in close_point_array)
+                print("APPPLE TIME",apple)
+                distances_x = [np.linalg.norm(apple[0] - x[0]) ]
+                distances_y = [np.linalg.norm(apple[1] - x[1])]
+                min_distance_x = min(distances_x)
+                min_distance_y = min(distances_y)
+                get_away = 0.003 * np.array([min_distance_x, min_distance_y, angle_diff])
+                #print("This smells", get_away)
+                #return get_away
+            
+        return np.array([0.0,0.0,0.0])     
 
-
-            #     # Return the distance to the next point of interest as a guidance parameter
-            #     return next_point_of_interest * 0.9
-        return np.array([0.0,0.0,0.0])    
+        
+            
 
     def f(self, x):
         close_point_array = []
@@ -669,7 +650,7 @@ class FhFunction:
 
         closest_obstacle = self.closest_points
 
-        if closest_obstacle is not None:
+        """if closest_obstacle is not None:
             for point in closest_obstacle:
                 length_to_obs = np.linalg.norm(np.array(point) - np.array(x)[:2])
                 if length_to_obs <= 2:
@@ -685,15 +666,15 @@ class FhFunction:
                 min_distance_y = min(distances_y)
                 get_away = 0.006 * np.array([-min_distance_x, -min_distance_y, angle_diff])
                 print("This smells", get_away)
-                return get_away
+                return get_away"""
                 
 
         
 
-        self.linear_vel = 0.006*np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1]), angle_diff])        
+        self.linear_vel = 0.0003*np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1]), angle_diff])        
           
         # Other calculations and logic...
-        print("I AM SPEEEEEEEEED",self.linear_vel)
+        #print("I AM SPEEEEEEEEED",self.linear_vel)
         return self.linear_vel
       
         #print("I AM SPOT", x)
@@ -744,26 +725,23 @@ class FhFunction:
 
                 # Return the distance to the next point of interest as a guidance parameter
                 return -next_point_of_interest """
-
-
-
 # @dataclass
 class Simulation:
     d: float = 3
     m: float = 3
-    x00: np.array = np.array([0.0, 0.0])  ####### change this
+    x00: np.array = np.array([0.0, 0.0, 0.0])  ####### change this
     x0: np.array = None
-    M0: float = 0.5 / d
-    Ms: np.array = 0.000001 * np.ones(m)
-    sigma: float = 0.000001
+    M0: float = 0.005 / d
+    Ms: np.array = 0.0000001 * np.ones(m)
+    sigma: float = 0.00000001
     hat_sigma: float = 0.0001
     init_std: float = 0.05 
-    eta0: float = 0.01
+    eta0: float = 0.1
     eta: float = None
     step: np.array = None
     reg: float = None
     # x_opt: float = None
-    T: int = 1
+    T: int = 3
     K: int = None
     experiments_num: int = 2
     mu: float = None
@@ -776,8 +754,8 @@ class Simulation:
     errors_total: list = None
     constraints_total: list = None
     beta: float = None
-    delta: float = 0.1
-    factor: float = 0.9
+    delta: float = 0.01
+    factor: float = 0.85
     runtimes: list = None
     obstacle: np.array = None
     n: int = 5

@@ -101,14 +101,30 @@ class SafeRlNode(Node):
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
-            self.goal = [np.random.random_integers(0,8), np.random.random_integers(-2,2), np.random.random_integers(-3.14,3.14)]
+            self.goal = [np.random.random_integers(-4,4), np.random.random_integers(-2,2), np.random.random_integers(-3.14,3.14)]
             self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         else:
             self.safe_rl.setPos(x=x,y=y,rot=rot)
             self.safe_rl.update()
             vel = self.safe_rl.getCmdVel()
-        
-            self.publish_cmd_vel(vel[0],vel[1],vel[2])
+            x_vel = vel[0]*math.cos(-rot)-vel[1]*math.sin(-rot)
+            y_vel = vel[1]*math.cos(-rot)+vel[0]*math.sin(-rot)
+            # x_vel = vel[0]
+            # y_vel = vel[1]
+            rot_vel = vel[2]
+            if x_vel > 1.0:
+                x_vel = 1.0
+            if y_vel > 1.0:
+                y_vel = 1.0
+            if rot_vel > 1.0:
+                rot_vel = 1.0
+            if x_vel < -1.0:
+                x_vel = -1.0
+            if y_vel < -1.0:
+                y_vel = -1.0
+            if rot_vel < -1.0:
+                rot_vel = -1.0
+            self.publish_cmd_vel(x_vel,y_vel,rot_vel)
        
 
         close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 20)
@@ -158,7 +174,12 @@ class SafeRlNode(Node):
             return 0.0, 0.0, 0.0
     
     
-
+    def cmd_vel_tester(self, msg):
+            x,y,rot = self.location()
+            x_vel = msg.linear.x*math.cos(-rot)-msg.linear.y*math.sin(-rot)
+            y_vel = msg.linear.y*math.cos(-rot)+msg.linear.x*math.sin(-rot)
+            rot_vel = msg.angular.z
+            self.publish_cmd_vel(x_vel,y_vel,rot_vel)
         
     def publish_cmd_vel(self,x_vel,y_vel,z_rot_vel):
         data = Twist()
