@@ -582,10 +582,10 @@ class FhFunction:
         close_point_array = []
 
         step_costs = [self.linear_vel * math.cos(self.theta),
-                            self.linear_vel * math.sin(self.theta),
+                            # self.linear_vel * math.sin(self.theta),
                             self.angular_vel / self.wheel_distance]
                 
-        target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
+        target_angle = math.atan2(self.robot_goal[1] - self.y_pos, self.robot_goal[0] - x[0])
         
         angle_diff = target_angle - self.theta
 
@@ -611,11 +611,11 @@ class FhFunction:
                     for p in close_point_array:
                         distances_x = [np.linalg.norm(p[0] - x[0]) ]
                         distances_y = [np.linalg.norm(p[1] - x[1])]
-                        base = np.array(-distances_x,-distances_y, angle_diff)
+                        base = np.array(-distances_x, angle_diff)
                         print("I DO NOTHING", base)
-                        return base
+                        # return base
                 else:
-                    return np.array([0.0,0.0,0.0])        
+                    return np.array([0.0,0.0])        
 
             if close_point_array:
                 
@@ -625,11 +625,11 @@ class FhFunction:
                 distances_y = [np.linalg.norm(apple[1] - x[1])]
                 min_distance_x = min(distances_x)
                 min_distance_y = min(distances_y)
-                get_away = 0.003 * np.array([min_distance_x, min_distance_y, angle_diff])
+                get_away = 0.003 * np.array([min_distance_x,  angle_diff])
                 print("This smells", get_away)
-                return get_away
+                # return get_away
             
-        return np.array([0.0,0.0,0.0]) 
+        return np.array([0.0,0.0]) 
 
         # step_costs = [self.linear_vel * math.cos(self.theta),
         #                     self.linear_vel * math.sin(self.theta),
@@ -706,15 +706,15 @@ class FhFunction:
     def f(self, x):
         
         step_costs = [self.linear_vel * math.cos(self.theta),
-                      self.linear_vel * math.sin(self.theta),
+                    #   self.linear_vel * math.sin(self.theta),
                       self.angular_vel / self.wheel_distance]
         
-        target_angle = math.atan2((self.robot_goal[1] - x[1]), (self.robot_goal[0] - x[0]))
+        target_angle = math.atan2((self.robot_goal[1] - self.y_pos), (self.robot_goal[0] - x[0]))
         
         # if 
         
         # angle_diff = 4*np.linalg.norm(target_angle - x[2])
-        angle_diff = np.linalg.norm(target_angle - x[2])
+        angle_diff = np.linalg.norm(target_angle - x[1])
         
         # while angle_diff > math.pi:
         #     angle_diff -= 2 * math.pi
@@ -736,10 +736,10 @@ class FhFunction:
         
         # ang_factor = 0.001
         # Set linear velocity proportional to the distance to the target
-        distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor*np.linalg.norm(self.robot_goal[1] - x[1]), ang_factor*self.angular_vel])
+        distance_to_target = np.array([(math.sqrt(pow(self.robot_goal[0]-self.x_pos,2)+pow(self.robot_goal[1]-self.y_pos,2))), ang_factor*self.angular_vel])
         # self.linear_vel = 0.005 * distance_to_target    
         self.linear_vel = distance_to_target 
-        # print("velocity", self.linear_vel)
+        print("velocity", self.linear_vel)
 
         # if angle_diff < 0.05:
         #     self.linear_vel[2] = 0.005*np.linalg.norm(0.0)
@@ -808,11 +808,11 @@ class FhFunction:
         return self.linear_vel 
 # @dataclass
 class Simulation:
-    d: float = 3
-    m: float = 3
+    d: float = 2
+    m: float = 2
     x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
-    M0: float = 0.5 / d
+    M0: float = 0.005 / d
     Ms: np.array = 0.000001 * np.ones(m)
     sigma: float = 0.000001
     hat_sigma: float = 0.0001
@@ -961,11 +961,12 @@ class Simulation:
             return False
     
     def setPos(self,x,y,rot):
-        self.opt.x_last = [x,y,rot]
-        
+        # self.opt.x_last = [x,y,rot]
+        self.opt.x_last = [x,rot]
+        self.myFhFunctions.setPos(x,y,rot)
     
     def getCmdVel(self):
-        return self.opt.cmd_vel[0], self.opt.cmd_vel[1], self.opt.cmd_vel[2]
+        return self.opt.cmd_vel[0], self.opt.cmd_vel[1]#, self.opt.cmd_vel[2]
 
 
     def update(self):

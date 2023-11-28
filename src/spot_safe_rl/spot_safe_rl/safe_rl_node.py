@@ -47,7 +47,7 @@ class SafeRlNode(Node):
         
         self.actccepted_distance = 0.3
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
-        self.goal = [2.5,-1.5, 0.0]
+        self.goal = [-2.5,-1.5, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         
 
@@ -113,37 +113,37 @@ class SafeRlNode(Node):
             self.safe_rl.setPos(x=x,y=y,rot=rot)
             self.safe_rl.update()
             vel = self.safe_rl.getCmdVel()
-            x_vel = vel[0]*math.cos(-rot)-vel[1]*math.sin(-rot)
-            y_vel = vel[1]*math.cos(-rot)+vel[0]*math.sin(-rot)
+            x_vel = vel[0]#vel[0]*math.cos(-rot)-vel[1]*math.sin(-rot)
+            # y_vel = vel[1]*math.cos(-rot)+vel[0]*math.sin(-rot)
             # x_vel = vel[0]
             # y_vel = vel[1]
-            rot_vel = vel[2]
+            rot_vel = vel[1]
             if x_vel > 1.0:
                 x_vel = 1.0
-            if y_vel > 1.0:
-                y_vel = 1.0
+            # if y_vel > 1.0:
+            #     y_vel = 1.0
             if rot_vel > 1.0:
                 rot_vel = 1.0
             if x_vel < -1.0:
                 x_vel = -1.0
-            if y_vel < -1.0:
-                y_vel = -1.0
+            # if y_vel < -1.0:
+            #     y_vel = -1.0
             if rot_vel < -1.0:
                 rot_vel = -1.0
-            self.publish_cmd_vel(x_vel,y_vel,rot_vel)
+            self.publish_cmd_vel(x_vel,0.0,rot_vel)
         
         close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 20)
 
         # print("WOW THATS ALOT OF ARRAY",close)
 
-        self.ax.clear()
-        self.ax.scatter(y,x,color='red')
-        self.ax.scatter(obstacles_y,obstacles_x)
-        # Plot each point from the 'close' arrays
-        for point in close:
-            self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
+        # self.ax.clear()
+        # self.ax.scatter(y,x,color='red')
+        # self.ax.scatter(obstacles_y,obstacles_x)
+        # # Plot each point from the 'close' arrays
+        # for point in close:
+        #     self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
 
-        plt.pause(0.005)
+        # plt.pause(0.005)
 
             
             # self.publish_cmd_vel(vel[0],vel[1],vel[2])
