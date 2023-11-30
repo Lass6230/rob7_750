@@ -754,11 +754,11 @@ class FhFunction:
         self.angular_vel = angle_diff
         # self.angular_vel = 
         if angle_diff > 1:
-            lin_factor = 0.0001
-            ang_factor = 0.002
+            lin_factor = 0.001
+            ang_factor = 0.006
         else:
-            lin_factor = 0.0035
-            ang_factor = 0.0005
+            lin_factor = 0.006
+            ang_factor = 0.001
         
         # ang_factor = 0.001
         # Set linear velocity proportional to the distance to the target
