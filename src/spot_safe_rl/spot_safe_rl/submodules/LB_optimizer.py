@@ -535,11 +535,11 @@ class SafeLogBarrierOptimizer:
         self.x_last = xt
         if self.t_count == 0:
             self.x0 = self.x_last
-            if self.h(xt)[0] >= 0.02:
+            if self.h(xt)[0] <= -0.02:
                 self.factor = 0.8
-            elif self.h(xt)[0] < 0.02 and self.h(xt)[0] >= 0.01:
+            elif self.h(xt)[0] > -0.02 and self.h(xt)[0] <= -0.01:
                 self.factor = 0.99
-            elif self.h(xt)[0] < 0.01:        
+            elif self.h(xt)[0] > -0.01:        
                 self.factor = 1.2
             self.eta = self.eta * self.factor
             print("WE ETA SPAGETT TONIGHT", self.eta)
