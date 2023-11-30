@@ -541,7 +541,11 @@ class SafeLogBarrierOptimizer:
                 self.factor = 0.99
             elif self.h(xt)[0] > -0.01:        
                 self.factor = 1.2
+
+
             self.eta = self.eta * self.factor
+            if self.eta <= 0.00000000000001:
+                self.eta = 0.00000000000001
             print("WE ETA SPAGETT TONIGHT", self.eta)
 
         self.previous_time = time()
@@ -839,7 +843,7 @@ class Simulation:
     x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
     M0: float = 0.5 / d
-    Ms: np.array = 0.1 * np.ones(m)
+    Ms: np.array = 0.2 * np.ones(m)
     sigma: float = 0.000001
     hat_sigma: float = 0.0001
     init_std: float = 0.05 
