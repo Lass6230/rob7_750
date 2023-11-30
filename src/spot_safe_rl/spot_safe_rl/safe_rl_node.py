@@ -45,11 +45,11 @@ class SafeRlNode(Node):
         self.from_frame = "odom"
         
         
-
-        self.safe_rl = LB.Simulation()
-        self.goal = [8, 0, 0]
+        self.actccepted_distance = 0
+        self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
+        self.goal = [8.0,0.0, 1.5]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
-        self.actccepted_distance = 0.5
+        
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
                                           history=rclpy.qos.HistoryPolicy.KEEP_LAST,
@@ -63,6 +63,9 @@ class SafeRlNode(Node):
         self.subscription  # prevent unused variable warning
 
         self.count = 0
+
+        # self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel_test",self.cmd_vel_tester,10)
+        # self.cmd_vel_sub
 
         # self.i = 0
         # sim = LB.Simulation()
@@ -112,7 +115,7 @@ class SafeRlNode(Node):
             # x_vel = vel[0]
             # y_vel = vel[1]
             rot_vel = vel[2]
-            if x_vel > 1.0:
+            """if x_vel > 1.0:
                 x_vel = 1.0
             if y_vel > 1.0:
                 y_vel = 1.0
@@ -123,13 +126,13 @@ class SafeRlNode(Node):
             if y_vel < -1.0:
                 y_vel = -1.0
             if rot_vel < -1.0:
-                rot_vel = -1.0
+                rot_vel = -1.0"""
             self.publish_cmd_vel(x_vel,y_vel,rot_vel)
        
 
-        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 20)
+        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 10)
 
-        print("WOW THATS ALOT OF ARRAY",close)
+        #print("WOW THATS ALOT OF ARRAY",close)
 
         self.ax.clear()
         self.ax.scatter(y,x,color='red')

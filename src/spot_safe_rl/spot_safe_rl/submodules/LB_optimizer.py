@@ -123,9 +123,6 @@ class SafeLogBarrierOptimizer:
     cmd_vel = None
     obstacle_list: list = None
     obstacle: np.array = None
-    obs_pos_x: float = 50.0
-    obs_pos_y: float = 50.0
-    obs_pos_z: float = 10.0
     x00: np.array = None
     x0: np.array = None
     M0: float = None
@@ -160,8 +157,7 @@ class SafeLogBarrierOptimizer:
     runtimes: list = None
     t_count: int = 0
     previous_time: float = 0.0
-    closest_points: np.array = None
-
+    
     def compute_gamma(self, t: int) -> float:
         """
         Computes the step-size
@@ -316,6 +312,8 @@ class SafeLogBarrierOptimizer:
     
 
 
+    
+
     def run_previous_model(self):
         print("online traning on previouss online traninged mode stuff :P")
         
@@ -435,7 +433,7 @@ class SafeLogBarrierOptimizer:
     def update(self):
         x_traj_k = self.barrier_SGD_non_block()
             
-        print("optimaizer")
+        # print("optimaizer")
         return x_traj_k
 
     def initial(self):
@@ -479,7 +477,7 @@ class SafeLogBarrierOptimizer:
 
 
     def barrier_SGD_non_block(self):
-        print("non block barrier_SGD")
+        # print("non block barrier_SGD")
         """
         Runs LB_SGD with constant parameter eta
         """
@@ -533,7 +531,7 @@ class SafeLogBarrierOptimizer:
         if self.t_count == 0:
             self.x0 = self.x_last
             self.eta = self.eta * self.factor
-            print("WE ETA SPAGETT TONIGHT", self.eta)
+            # print("WE ETA SPAGETT TONIGHT", self.eta)
 
         self.previous_time = time()
         return xt#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
@@ -543,24 +541,26 @@ class SafeLogBarrierOptimizer:
 
 # @dataclass
 class FhFunction:
-    obstacle: np.array = None
+    obstacle: np.array = [(500., 500., 50.)]
     obs_x_pos: float = 500.
     obs_y_pos: float = 500.
     diagonal_cost: float = 0.5
     k1: float = 5 # Gain for goal attraction
     k2: float = 30 # Gain for obstacle repulsion
     robot_goal: np.array = ([800., 800., 0.0])
-    theta: float = 0.  # in radians
+    theta: float = 0.0  # in radians
     wheel_radius: float = 1.0  # adjust as needed
     wheel_distance: float = 2.0  # adjust as needed
     linear_vel: float = 0.0
     angular_vel: float = 0.0
     j: int = 0
-    closest_points: np.array = None
-
     x_pos: float = 0.0
     y_pos: float = 0.0
     rot_pos: float = 0.0
+    ok_distance: float = 0.3
+    closest_points: np.array = None
+    def __init__(self, ok_distance):
+        self.ok_distance = ok_distance
 
     def move_obstacle(self,x,y):
         self.obs_x_pos += x
@@ -569,6 +569,8 @@ class FhFunction:
     
     def setNewGoal(self, x, y, rot):
         self.robot_goal = ([x,y,rot])
+
+       
     
     def setPos(self, x, y, rot):
         self.x_pos = x
@@ -577,116 +579,102 @@ class FhFunction:
 
     def h(self, x):
 
-        close_point_array = []
 
-        step_costs = [self.linear_vel * math.cos(self.theta),
-                            self.linear_vel * math.sin(self.theta),
-                            self.angular_vel / self.wheel_distance]
-                
-        target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
-        
-        angle_diff = target_angle - self.theta
+            get_away = np.array([0.0,0.0,0.0])
+            close_point_array = []
 
-        while angle_diff > math.pi:
-            angle_diff -= 2 * math.pi
-        while angle_diff < -math.pi:
-            angle_diff += 2 * math.pi
-
-        # Set angular velocity proportional to the angle difference
-        self.angular_vel = 0.05 * angle_diff
-
-        closest_obstacle = self.closest_points
-
-        
-        
-        if closest_obstacle is not None:
-            for point in closest_obstacle:
-                length_to_obs = np.linalg.norm(np.array(point) - np.array(x)[:2])
-                if length_to_obs <= 2:
-                    close_point_array.append(point)
-                elif length_to_obs is not None and length_to_obs>2:
-                    close_point_array.clear()
-                    for p in close_point_array:
-                        distances_x = [np.linalg.norm(p[0] - x[0]) ]
-                        distances_y = [np.linalg.norm(p[1] - x[1])]
-                        base = np.array(-distances_x,-distances_y, angle_diff)
-                        print("I DO NOTHING", base)
-                        #return base
-                else:
-                    return np.array([0.0,0.0,0.0])        
-
-            if close_point_array:
-                
-                apple = min(p for p in close_point_array)
-                print("APPPLE TIME",apple)
-                distances_x = [np.linalg.norm(apple[0] - x[0]) ]
-                distances_y = [np.linalg.norm(apple[1] - x[1])]
-                min_distance_x = min(distances_x)
-                min_distance_y = min(distances_y)
-                get_away = 0.003 * np.array([min_distance_x, min_distance_y, angle_diff])
-                #print("This smells", get_away)
-                #return get_away
+            step_costs = [self.linear_vel * math.cos(self.theta),
+                                self.linear_vel * math.sin(self.theta),
+                                self.angular_vel / self.wheel_distance]
+                    
+            target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
             
-        return np.array([0.0,0.0,0.0])     
+            angle_diff = target_angle - self.theta
 
-        
+            while angle_diff > math.pi:
+                angle_diff -= 2 * math.pi
+            while angle_diff < -math.pi:
+                angle_diff += 2 * math.pi
+
+            # Set angular velocity proportional to the angle difference
+            self.angular_vel = 0.05 * angle_diff
+
+            closest_obstacle = self.closest_points
+
             
+            
+            if closest_obstacle is not None:
+                for point in closest_obstacle:
+                    length_to_obs = 2 - np.linalg.norm(np.array(point) - np.array(x)[:2])
+                    print("LENGY", length_to_obs)
+                    """apple = max(p for p in length_to_obs)
+                    distances_x = [np.linalg.norm(apple[0] - x[0])]
+                    distances_y = [np.linalg.norm(apple[1] - x[1])]"""
+                    get_away = 0.005 * np.array([length_to_obs, length_to_obs, length_to_obs])
+                    print("SMELLY BOI", get_away)    
+                        
+            return np.array(get_away)   
 
     def f(self, x):
-        close_point_array = []
-        # Existing code as it is...
+        
         step_costs = [self.linear_vel * math.cos(self.theta),
                       self.linear_vel * math.sin(self.theta),
                       self.angular_vel / self.wheel_distance]
         
-        target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
-        repulsive_force = np.array([0., 0.])
-        angle_diff = target_angle - self.theta
+        target_angle = math.atan2((self.robot_goal[1] - x[1]), (self.robot_goal[0] - x[0]))
+        
+        distance_to_goal = np.linalg.norm(self.robot_goal[0] - x[0]) + np.linalg.norm(self.robot_goal[1] - x[1])
+        
+        # angle_diff = 4*np.linalg.norm(target_angle - x[2])
+        angle_diff = np.linalg.norm(target_angle - x[2])
+        
+        # while angle_diff > math.pi:
+        #     angle_diff -= 2 * math.pi
+        # while angle_diff < -math.pi:
+        #     angle_diff += 2 * math.pi
 
-        while angle_diff > math.pi:
-            angle_diff -= 2 * math.pi
-        while angle_diff < -math.pi:
-            angle_diff += 2 * math.pi
+        # Set angular velocity proportional to the angle difference
+        #0.05 * angle_diff
+        self.angular_vel = angle_diff
+        # self.angular_vel = 0
+        lin_factor = 0.001
+        ang_factor = 0.0095
+        if angle_diff > 1:
+            lin_factor = 0.001
+            ang_factor = 0.005
+        else:
+            lin_factor = 0.024
+            ang_factor = 0.0015
+        
+        if distance_to_goal >= 0.5:
+            speed = 0.88578
+        else:
+            speed = 0.0    
 
-        closest_obstacle = self.closest_points
 
-        """if closest_obstacle is not None:
-            for point in closest_obstacle:
-                length_to_obs = np.linalg.norm(np.array(point) - np.array(x)[:2])
-                if length_to_obs <= 2:
-                    close_point_array.append(point)
-                else:
-                    close_point_array.clear()    
-
-            if close_point_array:
-                apple = min(p for p in close_point_array)
-                distances_x = [np.linalg.norm(apple[0] - x[0]) ]
-                distances_y = [np.linalg.norm(apple[1] - x[1])]
-                min_distance_x = min(distances_x)
-                min_distance_y = min(distances_y)
-                get_away = 0.006 * np.array([-min_distance_x, -min_distance_y, angle_diff])
-                print("This smells", get_away)
-                return get_away"""
-                
+        # Set linear velocity proportional to the distance to the target
+        distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor*np.linalg.norm(self.robot_goal[1] - x[1]), ang_factor*self.angular_vel])
+        # self.linear_vel = 0.005 * distance_to_target    
+        self.linear_vel = distance_to_target 
+        # print("velocity", self.linear_vel)
+        return distance_to_target
+        # if angle_diff < 0.05:
+        #     self.linear_vel[2] = 0.005*np.linalg.norm(0.0)
+        #     self.linear_vel[0] = 0.005*np.linalg.norm(self.robot_goal[0] - x[0])
+        #     self.linear_vel[1] = 0.005*np.linalg.norm(self.robot_goal[1] - x[1])
+        #     # print("angular_taget: " , self.linear_vel)
+        #     return self.linear_vel
+        # else:
+        #     self.linear_vel[0] = 0.0025*np.linalg.norm(0.0)
+        #     self.linear_vel[1] = 0.0025 *np.linalg.norm(0.0)
+        #     self.linear_vel[2] = 0.0095 *np.linalg.norm(target_angle - x[2])
+        #     # print("angular_taget: " , self.linear_vel)
+        #     return self.linear_vel
 
         
-
-        self.linear_vel = 0.0003*np.array([np.linalg.norm(self.robot_goal[0] - x[0]) , np.linalg.norm(self.robot_goal[1] - x[1]), angle_diff])        
-          
-        # Other calculations and logic...
-        #print("I AM SPEEEEEEEEED",self.linear_vel)
-        return self.linear_vel
-      
-        #print("I AM SPOT", x)
-
-        #print("WOW A BOX GIVE ME", length_to_obs)
-
-        #print("velocity", self.linear_vel)
         #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
-        
-        
-
-
+        # repulsive_force = np.array([0., 0.])
+        # new_pos = np.array([0., 0.])
 
         """for obs in self.obstacle:
             diff = x - obs[:2]
@@ -725,18 +713,28 @@ class FhFunction:
 
                 # Return the distance to the next point of interest as a guidance parameter
                 return -next_point_of_interest """
+
+
+
+        # Calculate the distance to the robot goal for the updated position
+       # updated_distance = np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] ),
+       #                              np.linalg.norm(closest_step[1] - self.robot_goal[1] )])
+        # print("lin_vel", self.linear_vel)
+        #return updated_distance
+       # return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1] + repulsive_force[1])]) 
+        
 # @dataclass
 class Simulation:
     d: float = 3
     m: float = 3
-    x00: np.array = np.array([0.0, 0.0, 0.0])  ####### change this
+    x00: np.array = None ####### change this
     x0: np.array = None
-    M0: float = 0.005 / d
-    Ms: np.array = 0.0000001 * np.ones(m)
-    sigma: float = 0.00000001
-    hat_sigma: float = 0.0001
+    M0: float = 0.5 / d
+    Ms: np.array = 0.1 * np.ones(m)
+    sigma: float = 0.0001
+    hat_sigma: float = 0.01
     init_std: float = 0.05 
-    eta0: float = 0.1
+    eta0: float = 0.5
     eta: float = None
     step: np.array = None
     reg: float = None
@@ -754,13 +752,13 @@ class Simulation:
     errors_total: list = None
     constraints_total: list = None
     beta: float = None
-    delta: float = 0.01
-    factor: float = 0.85
+    delta: float = 0.1
+    factor: float = 0.9
     runtimes: list = None
-    obstacle: np.array = None
+    obstacle: np.array = ([500.0, 500.0, 50])
     n: int = 5
     n_iters: int = 800
-    nu: float = 0.01
+    nu: float = 1.
     grid_size = (1000, 1000)
     robot_start = ([0., 0.])
     robot_goal = ([800., 800.])
@@ -771,16 +769,17 @@ class Simulation:
     wheel_distance: float = 2.0  # adjust as needed
     linear_vel: float = 0.0
     angular_vel: float = 0.0
-    cloesest_points: np.array = None
-
-
+    ok_distance: float = 0.3
 
     sim_time: float = 400.0
     step_time: float = 0.1
 
-    def __init__(self):
+    def __init__(self, ok_distance):
+        self.ok_distance = ok_distance
         print("init simulation")
-        self.myFhFunctions = FhFunction()
+        self.myFhFunctions = FhFunction(
+            ok_distance = self.ok_distance,
+        )
         self.my_oracle = Oracle(
             f = self.myFhFunctions.f,
             h = self.myFhFunctions.h, 
@@ -855,10 +854,6 @@ class Simulation:
         self.myFhFunctions.setNewGoal(x,y,rot)
         robot_goal = ([x, y, rot])
     # def setStart(self,x,y)
-
-    def setObstacles(self, obstacles):
-        self.myFhFunctions.obstacle = obstacles
-
     def closest_arrays_to_zero(self,arrays, n):
         filtered_arrays = [item for item in arrays if isinstance(item, list) != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
         distances = [(np.linalg.norm(np.array(array)), array) for array in filtered_arrays]
@@ -867,8 +862,10 @@ class Simulation:
         closest_n_arrays = [array for distance, array in distances[:n]]
 
         self.myFhFunctions.closest_points = closest_n_arrays
-        return closest_n_arrays
-            
+        return closest_n_arrays 
+
+    def setObstacles(self, obstacles):
+        self.myFhFunctions.obstacle = obstacles
 
     def reachedGoal(self,pos, ok_distance):
         goal = np.asarray(self.robot_goal)
@@ -881,6 +878,7 @@ class Simulation:
     
     def setPos(self,x,y,rot):
         self.opt.x_last = [x,y,rot]
+        #self.myFhFunctions.setPos(x,y,rot)
         
     
     def getCmdVel(self):
