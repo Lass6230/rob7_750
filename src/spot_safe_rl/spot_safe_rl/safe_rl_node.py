@@ -47,7 +47,7 @@ class SafeRlNode(Node):
         
         self.actccepted_distance = 0.3
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
-        self.goal = [5.9,0.0, 0.0]
+        self.goal = [4.0,0.0, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         
 
@@ -90,19 +90,15 @@ class SafeRlNode(Node):
         # self.get_logger().info('Y: "%f"' % y)
         for i in range(len(msg.ranges)):
             
-            # obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
-            # obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)
+            obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
+            obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)
             obstacles.append([((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x), ((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)]) # mabye adding the offset from baselink
             # mabye adding the offset from baselink
             
         self.safe_rl.setObstacles(obstacles=obstacles)
 
         flattened_obs = [item for item in obstacles if isinstance(item, list) and item != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
-        distances_to_obs = [np.linalg.norm(np.array(array)) for array in flattened_obs]
-        
-        # Find the index of the array closest to 0
-        closest_obs = np.argmin(distances_to_obs)
-        closest_array = flattened_obs[closest_obs]
+
         
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
@@ -131,18 +127,21 @@ class SafeRlNode(Node):
             if rot_vel < -1.0:
                 rot_vel = -1.0
             self.publish_cmd_vel(x_vel,y_vel,rot_vel)
+
         
-        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 20)
+        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 1, x,y)
 
         # print("WOW THATS ALOT OF ARRAY",close)
 
         self.ax.clear()
         self.ax.scatter(y,x,color='red')
-        self.ax.scatter(obstacles_y,obstacles_x)
+        self.ax.scatter(obstacles_y,obstacles_x, color = 'blue')
         # Plot each point from the 'close' arrays
         for point in close:
             self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
 
+
+        
         plt.pause(0.005)
 
             

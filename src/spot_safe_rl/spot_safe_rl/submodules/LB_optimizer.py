@@ -156,7 +156,7 @@ class SafeLogBarrierOptimizer:
     errors_total: list = None
     constraints_total: list = None
     beta: float = None
-    factor: float = 0.5
+    factor: float = None
     runtimes: list = None
     t_count: int = 0
     previous_time: float = 0.0
@@ -282,6 +282,8 @@ class SafeLogBarrierOptimizer:
             x_long_trajectory = np.vstack((x_long_trajectory, x_traj_k))
             T_total = T_total + T_k
             self.x0 = x_last_k
+            print(self.h(self.x0))
+
             self.eta = self.eta * self.factor
             self.obs_pos_x -= 1.
             self.obs_pos_y -= 1.01
@@ -423,7 +425,7 @@ class SafeLogBarrierOptimizer:
             constraints_total.append(constraints_long_trajectory)
         self.x_total = x_total
         self.obstacle_list = x_obstacle
-        #print(x_total)
+        print(x_total)
         self.constraints_total = constraints_total
         print('LB_SGD runs finished')
 
@@ -509,7 +511,7 @@ class SafeLogBarrierOptimizer:
 
         self.cmd_vel = (xt-self.x_last)/(time()-self.previous_time)
 
-        #print("xt", xt)
+        print("xt", xt)
         # Tk += 1
         
         x_trajectory = np.array([xt]) # # is the policy
@@ -527,12 +529,20 @@ class SafeLogBarrierOptimizer:
             #print("constraints_trajectory", constraints_trajectory)
             #print("worst_constraint", worst_constraint)    
 
+
+
         self.xs.append(xt)
         self.x_last = xt
         if self.t_count == 0:
             self.x0 = self.x_last
+            if self.h(xt)[0] >= 0.02:
+                self.factor = 0.8
+            elif self.h(xt)[0] < 0.02 and self.h(xt)[0] >= 0.01:
+                self.factor = 0.99
+            elif self.h(xt)[0] < 0.01:        
+                self.factor = 1.2
             self.eta = self.eta * self.factor
-            # print("WE ETA SPAGETT TONIGHT", self.eta)
+            print("WE ETA SPAGETT TONIGHT", self.eta)
 
         self.previous_time = time()
         return xt#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
@@ -547,7 +557,7 @@ class FhFunction:
     obs_y_pos: float = 500.
     diagonal_cost: float = 0.5
     k1: float = 5 # Gain for goal attraction
-    k2: float = 30 # Gain for obstacle repulsion
+    k2: float = 30 # Gain for obstacle repulsion                    
     robot_goal: np.array = ([800., 800., 0.0])
     theta: float = 0.0  # in radians
     wheel_radius: float = 1.0  # adjust as needed
@@ -581,35 +591,21 @@ class FhFunction:
         get_away = np.array([0.0,0.0,0.0])
         close_point_array = []
 
-        step_costs = [self.linear_vel * math.cos(self.theta),
-                            self.linear_vel * math.sin(self.theta),
-                            self.angular_vel / self.wheel_distance]
-
-        target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
-
-        angle_diff = target_angle - self.theta
-
-        while angle_diff > math.pi:
-            angle_diff -= 2 * math.pi
-        while angle_diff < -math.pi:
-            angle_diff += 2 * math.pi
-
-        # Set angular velocity proportional to the angle difference
-        self.angular_vel = 0.05 * angle_diff
-
+ 
         closest_obstacle = self.closest_points
 
 
 
         if closest_obstacle is not None:
             for point in closest_obstacle:
-                length_to_obs = 2 - np.linalg.norm(np.array(point) - np.array(x)[:2])
-                print("LENGY", length_to_obs)
-                """apple = max(p for p in length_to_obs)
-                distances_x = [np.linalg.norm(apple[0] - x[0])]
-                distances_y = [np.linalg.norm(apple[1] - x[1])]"""
-                get_away = 0.005 * np.array([length_to_obs, length_to_obs, length_to_obs])
+                length_to_obs = 2 - (np.sqrt(np.square(point[0]-x[0])+np.square(point[1]-x[1])))
+                #print("LENGY", length_to_obs)
+                
+                get_away =  0.01*np.array([length_to_obs, length_to_obs, length_to_obs])
+                
                 print("SMELLY BOI", get_away)
+               
+            close_point_array.clear()    
         return np.array(get_away)
         # close_point_array = []
 
@@ -756,15 +752,13 @@ class FhFunction:
         # Set angular velocity proportional to the angle difference
         #0.05 * angle_diff
         self.angular_vel = angle_diff
-        # self.angular_vel = 0
-        lin_factor = 0.005
-        ang_factor = 0.0095
-        if angle_diff > 0.5:
-            lin_factor = 0.003
-            ang_factor = 0.04
+        # self.angular_vel = 
+        if angle_diff > 1:
+            lin_factor = 0.0001
+            ang_factor = 0.002
         else:
-            lin_factor = 0.011
-            ang_factor = 0.001
+            lin_factor = 0.0035
+            ang_factor = 0.0005
         
         # ang_factor = 0.001
         # Set linear velocity proportional to the distance to the target
@@ -829,7 +823,7 @@ class FhFunction:
                 # Return the distance to the next point of interest as a guidance parameter
                 return -next_point_of_interest """
 
-
+        #print("WHERE WE GOING", distance_to_target)   
 
         # Calculate the distance to the robot goal for the updated position
        # updated_distance = np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] ),
@@ -837,7 +831,7 @@ class FhFunction:
         # print("lin_vel", self.linear_vel)
         #return updated_distance
        # return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1] + repulsive_force[1])]) 
-        return self.linear_vel 
+        return distance_to_target
 # @dataclass
 class Simulation:
     d: float = 3
@@ -845,7 +839,7 @@ class Simulation:
     x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
     M0: float = 0.5 / d
-    Ms: np.array = 0.01 * np.ones(m)
+    Ms: np.array = 0.1 * np.ones(m)
     sigma: float = 0.000001
     hat_sigma: float = 0.0001
     init_std: float = 0.05 
@@ -868,12 +862,12 @@ class Simulation:
     constraints_total: list = None
     beta: float = None
     delta: float = 0.1
-    factor: float = 0.9
+    factor: float = 1
     runtimes: list = None
     obstacle: np.array = ([500.0, 500.0, 50])
     n: int = 5
     n_iters: int = 800
-    nu: float = 0.01
+    nu: float = 0.1
     grid_size = (1000, 1000)
     robot_start = ([0., 0.])
     robot_goal = ([800., 800.])
@@ -935,6 +929,7 @@ class Simulation:
         self.myFhFunctions.setNewGoal(2.0,-2.0, 0.0)
         self.opt.initial()
         
+        
         # # self.opt.run_average_experiment()
         # for x in range(1500):
         #     xt = self.opt.update()
@@ -951,7 +946,7 @@ class Simulation:
         #     """elif x <= 400 and x > 200:
         #         self.myFhFunctions.move_obstacle(1,1)
         #     elif x <= 600 and x > 400:
-        #         self.myFhFunctions.move_obstacle(0,1)
+        #         self.myFhFunctions.factormove_obstacle(0,1)
         #     elif x <= 800 and x > 600:
         #         self.myFhFunctions.move_obstacle(1,0)
         #     elif x <= 1000 and x > 800:
@@ -970,9 +965,9 @@ class Simulation:
         robot_goal = ([x, y, rot])
     # def setStart(self,x,y)
 
-    def closest_arrays_to_zero(self,arrays, n):
+    def closest_arrays_to_zero(self,arrays, n, x,y):
         filtered_arrays = [item for item in arrays if isinstance(item, list) != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
-        distances = [(np.linalg.norm(np.array(array)), array) for array in filtered_arrays]
+        distances = [(np.linalg.norm(np.array(array)-(x,y)), array) for array in filtered_arrays]
         distances.sort(key=lambda x: x[0])  # Sort distances from smallest to largest
         
         closest_n_arrays = [array for distance, array in distances[:n]]
