@@ -47,7 +47,7 @@ class SafeRlNode(Node):
         
         self.actccepted_distance = 0.3
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
-        self.goal = [-2.5,-1.5, 0.0]
+        self.goal = [2.5,1.5, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         
 
@@ -120,30 +120,31 @@ class SafeRlNode(Node):
             rot_vel = vel[1]
             if x_vel > 1.0:
                 x_vel = 1.0
-            # if y_vel > 1.0:
-            #     y_vel = 1.0
+            # # if y_vel > 1.0:
+            # #     y_vel = 1.0
             if rot_vel > 1.0:
                 rot_vel = 1.0
             if x_vel < -1.0:
                 x_vel = -1.0
-            # if y_vel < -1.0:
-            #     y_vel = -1.0
+            # # if y_vel < -1.0:
+            # #     y_vel = -1.0
             if rot_vel < -1.0:
                 rot_vel = -1.0
+            print("real_vel: ", vel)
             self.publish_cmd_vel(x_vel,0.0,rot_vel)
         
         close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 20)
 
         # print("WOW THATS ALOT OF ARRAY",close)
 
-        # self.ax.clear()
-        # self.ax.scatter(y,x,color='red')
-        # self.ax.scatter(obstacles_y,obstacles_x)
-        # # Plot each point from the 'close' arrays
-        # for point in close:
-        #     self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
+        self.ax.clear()
+        self.ax.scatter(y,x,color='red')
+        self.ax.scatter(obstacles_y,obstacles_x)
+        # Plot each point from the 'close' arrays
+        for point in close:
+            self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
 
-        # plt.pause(0.005)
+        plt.pause(0.005)
 
             
             # self.publish_cmd_vel(vel[0],vel[1],vel[2])
@@ -198,7 +199,7 @@ class SafeRlNode(Node):
         self.cmd_vel_publisher_.publish(data)
     
     def goalChecker(self,x,y):
-        distance=math.sqrt(pow(self.goal[0]-x,2)+pow(self.goal[1]-y,2))
+        distance=math.sqrt(math.pow(self.goal[0]-x,2)+math.pow(self.goal[1]-y,2))
         if distance < self.actccepted_distance:
             return True
         else:
