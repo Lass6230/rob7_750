@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'safe_rl_node = spot_safe_rl.safe_rl_node:main',
+            'safe_rl_node_lass = spot_safe_rl.safe_rl_node_lass:main',
         ],
     },
 )
