@@ -533,7 +533,7 @@ class SafeLogBarrierOptimizer:
 
         self.xs.append(xt)
         self.x_last = xt
-        if self.t_count == 0:
+        """if self.t_count == 0:
             self.x0 = self.x_last
             if self.h(xt)[0] <= -0.02:
                 self.factor = 0.8
@@ -545,8 +545,14 @@ class SafeLogBarrierOptimizer:
 
             self.eta = self.eta * self.factor
             if self.eta <= 0.00000000000001:
-                self.eta = 0.00000000000001
-            print("WE ETA SPAGETT TONIGHT", self.eta)
+                self.eta = 0.00000000000001"""
+        
+        self.eta = (3/(1+np.exp(-10*(self.h(xt)[0]*100+1)))*self.eta+0.01)
+
+        
+
+
+        print("WE ETA SPAGETT TONIGHT", self.eta)
 
         self.previous_time = time()
         return xt#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
@@ -600,18 +606,23 @@ class FhFunction:
 
 
 
+        length_to_obs = []
+        # try using multiple objects and try chaning eta0 in the barrier_SGD_non_block function
+        # use distance to object to control eta0
+        # might not be good to just take the mean because then it might not see small object in front of it
+
         if closest_obstacle is not None:
             for point in closest_obstacle:
-                length_to_obs = 2 - (np.sqrt(np.square(point[0]-x[0])+np.square(point[1]-x[1])))
-                #print("LENGY", length_to_obs)
-                
-                get_away =  0.01*np.array([length_to_obs, length_to_obs, length_to_obs])
-                
-                print("SMELLY BOI", get_away)
-               
-            close_point_array.clear()    
+                length_to_obs.append( 1 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
+                print("LENGY", length_to_obs)
+                """apple = max(p for p in length_to_obs)
+                distances_x = [np.linalg.norm(apple[0] - x[0])]
+                distances_y = [np.linalg.norm(apple[1] - x[1])]"""
+                # get_away = 0.01 * np.array([length_to_obs, length_to_obs, length_to_obs])
+                #print("SMELLY BOI", get_away)
+            num = sum(length_to_obs)/len(length_to_obs)
+            get_away = 0.01 * np.array([length_to_obs[0], num, num])
         return np.array(get_away)
-        # close_point_array = []
 
         # step_costs = [self.linear_vel * math.cos(self.theta),
         #                     self.linear_vel * math.sin(self.theta),
@@ -866,7 +877,7 @@ class Simulation:
     constraints_total: list = None
     beta: float = None
     delta: float = 0.1
-    factor: float = 1
+    factor: float = 0.5
     runtimes: list = None
     obstacle: np.array = ([500.0, 500.0, 50])
     n: int = 5

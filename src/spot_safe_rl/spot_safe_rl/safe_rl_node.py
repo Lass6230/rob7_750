@@ -129,7 +129,7 @@ class SafeRlNode(Node):
             self.publish_cmd_vel(x_vel,y_vel,rot_vel)
 
         
-        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 1, x,y)
+        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 10, x,y)
 
         # print("WOW THATS ALOT OF ARRAY",close)
 
