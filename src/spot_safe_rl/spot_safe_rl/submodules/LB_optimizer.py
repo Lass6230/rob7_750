@@ -282,7 +282,7 @@ class SafeLogBarrierOptimizer:
             x_long_trajectory = np.vstack((x_long_trajectory, x_traj_k))
             T_total = T_total + T_k
             self.x0 = x_last_k
-            print(self.h(self.x0))
+            #print(self.h(self.x0))
 
             self.eta = self.eta * self.factor
             self.obs_pos_x -= 1.
@@ -547,9 +547,11 @@ class SafeLogBarrierOptimizer:
             if self.eta <= 0.00000000000001:
                 self.eta = 0.00000000000001"""
         
-        self.eta = (3/(1+np.exp(-10*(self.h(xt)[0]*100+1)))*self.eta+0.01)
+        self.eta = (3/(1+np.exp(-5*(max(self.h(xt))*100+1)))*self.eta+0.01)
 
-        
+
+        print("is smakll plz", (max(self.h(xt))))
+        print("IS i work?",3/(1+np.exp(-5*(max(self.h(xt))*100+1))))
 
 
         print("WE ETA SPAGETT TONIGHT", self.eta)
@@ -581,6 +583,10 @@ class FhFunction:
     ok_distance: float = 0.3
     closest_points: np.array = None
 
+    closest_points_field_1: np.array = None
+    closest_points_field_2: np.array = None
+    closest_points_field_3: np.array = None
+
     def __init__(self, ok_distance):
         self.ok_distance = ok_distance
 
@@ -603,25 +609,42 @@ class FhFunction:
 
  
         closest_obstacle = self.closest_points
+        cl_obs_1 = self.closest_points_field_1
+        cl_obs_2 = self.closest_points_field_2
+        cl_obs_3 = self.closest_points_field_3
 
 
 
         length_to_obs = []
+        length_to_obs_1 = []
+        length_to_obs_2 = []
+        length_to_obs_3 = []
         # try using multiple objects and try chaning eta0 in the barrier_SGD_non_block function
         # use distance to object to control eta0
         # might not be good to just take the mean because then it might not see small object in front of it
 
-        if closest_obstacle is not None:
+        """if closest_obstacle is not None:
             for point in closest_obstacle:
                 length_to_obs.append( 1 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
                 print("LENGY", length_to_obs)
-                """apple = max(p for p in length_to_obs)
+                apple = max(p for p in length_to_obs)
                 distances_x = [np.linalg.norm(apple[0] - x[0])]
-                distances_y = [np.linalg.norm(apple[1] - x[1])]"""
+                distances_y = [np.linalg.norm(apple[1] - x[1])]
                 # get_away = 0.01 * np.array([length_to_obs, length_to_obs, length_to_obs])
                 #print("SMELLY BOI", get_away)
             num = sum(length_to_obs)/len(length_to_obs)
-            get_away = 0.01 * np.array([length_to_obs[0], num, num])
+            get_away = 0.01 * np.array([length_to_obs[0], num, num])"""
+        
+        if cl_obs_1 is not None and cl_obs_2 is not None and cl_obs_3 is not None:
+            for point in cl_obs_1:
+                length_to_obs_1.append(2 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
+            for point in cl_obs_2:
+                length_to_obs_2.append(2 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
+            for point in cl_obs_3:
+                length_to_obs_3.append(2 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
+            get_away =  np.array([0.01*(sum(length_to_obs_1)/len(length_to_obs_1)), 0.005*(sum(length_to_obs_2)/len(length_to_obs_2)), 0.01*(sum(length_to_obs_3)/len(length_to_obs_3))])
+
+        print("get awayyyy", get_away)
         return np.array(get_away)
 
         # step_costs = [self.linear_vel * math.cos(self.theta),
@@ -980,15 +1003,32 @@ class Simulation:
         robot_goal = ([x, y, rot])
     # def setStart(self,x,y)
 
-    def closest_arrays_to_zero(self,arrays, n, x,y):
+    def closest_arrays_to_zero(self,arrays, n,x,y,flattened_obs_zone_1 ,flattened_obs_zone_2, flattened_obs_zone_3):
         filtered_arrays = [item for item in arrays if isinstance(item, list) != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
+        
+        filtered_zone_1 = [item for item in flattened_obs_zone_1 if isinstance(item, list) != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
+        filtered_zone_2 = [item for item in flattened_obs_zone_2 if isinstance(item, list) != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
+        filtered_zone_3 = [item for item in flattened_obs_zone_3 if isinstance(item, list) != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
+        distances_1 = [(np.linalg.norm(np.array(array)-(x,y)), array) for array in filtered_zone_1]
+        distances_1.sort(key=lambda x: x[0])  # Sort distances from smallest to largest
+        distances_2 = [(np.linalg.norm(np.array(array)-(x,y)), array) for array in filtered_zone_2]
+        distances_2.sort(key=lambda x: x[0])  # Sort distances from smallest to largest
+        distances_3 = [(np.linalg.norm(np.array(array)-(x,y)), array) for array in filtered_zone_3]
+        distances_3.sort(key=lambda x: x[0])  # Sort distances from smallest to largest
+        
+
+        
         distances = [(np.linalg.norm(np.array(array)-(x,y)), array) for array in filtered_arrays]
         distances.sort(key=lambda x: x[0])  # Sort distances from smallest to largest
         
         closest_n_arrays = [array for distance, array in distances[:n]]
 
+        self.myFhFunctions.closest_points_field_1 = [array for distance, array in distances_1[:n]]
+        self.myFhFunctions.closest_points_field_2 = [array for distance, array in distances_2[:n]]
+        self.myFhFunctions.closest_points_field_3 = [array for distance, array in distances_3[:n]]
         self.myFhFunctions.closest_points = closest_n_arrays
-        return closest_n_arrays
+        return closest_n_arrays , self.myFhFunctions.closest_points_field_1,self.myFhFunctions.closest_points_field_2,self.myFhFunctions.closest_points_field_3
+
 
     def setObstacles(self, obstacles):
         self.myFhFunctions.obstacle = obstacles

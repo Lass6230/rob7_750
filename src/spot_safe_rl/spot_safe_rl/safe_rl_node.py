@@ -5,6 +5,7 @@ from std_msgs.msg import String
 from .submodules import LB_optimizer as LB
 
 from sensor_msgs.msg import LaserScan
+import collections
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -24,7 +25,11 @@ class SafeRlNode(Node):
     def __init__(self):
         super().__init__('safe_rl_node')
 
-        
+        buffer_size = 5
+        self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
+        self.cir_buffer_y_vel = collections.deque(maxlen=buffer_size)
+        self.cir_buffer_rot_vel = collections.deque(maxlen=buffer_size)
+
 
 
         self.cmd_vel_publisher_ = self.create_publisher(Twist, 'cmd_vel', 10)
@@ -95,16 +100,19 @@ class SafeRlNode(Node):
             obstacles.append([((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x), ((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)]) # mabye adding the offset from baselink
             # mabye adding the offset from baselink
             
-        self.safe_rl.setObstacles(obstacles=obstacles)
-
+        flattened_obs_zone_1 = [item for item in obstacles[0:int(len(obstacles)/3)] if isinstance(item, list) and item != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
+        flattened_obs_zone_2 = [item for item in obstacles[int(len(obstacles)/3):int((len(obstacles)/3)*2)] if isinstance(item, list) and item != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
+        flattened_obs_zone_3 = [item for item in obstacles[int((len(obstacles)/3)*2):int(len(obstacles))] if isinstance(item, list) and item != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
         flattened_obs = [item for item in obstacles if isinstance(item, list) and item != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
-
         
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
-            self.goal = [np.random.random_integers(-4,4), np.random.random_integers(-2,2), np.random.random_integers(-3.14,3.14)]
+            self.goal = [np.random.random_integers(0,6), np.random.random_integers(-2,2), np.random.random_integers(-3.14,3.14)]
             self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
+            self.cir_buffer_x_vel.clear()
+            self.cir_buffer_y_vel.clear()
+            self.cir_buffer_rot_vel.clear()
         else:
             self.safe_rl.setPos(x=x,y=y,rot=rot)
             self.safe_rl.update()
@@ -126,22 +134,31 @@ class SafeRlNode(Node):
                 y_vel = -1.0
             if rot_vel < -1.0:
                 rot_vel = -1.0
-            self.publish_cmd_vel(x_vel,y_vel,rot_vel)
 
+            self.cir_buffer_x_vel.append(x_vel)
+            self.cir_buffer_y_vel.append(y_vel)
+            self.cir_buffer_rot_vel.append(rot_vel)
+            x_vel= (sum(self.cir_buffer_x_vel)/len(self.cir_buffer_x_vel))
+            y_vel= (sum(self.cir_buffer_y_vel)/len(self.cir_buffer_y_vel))
+            rot_vel= (sum(self.cir_buffer_rot_vel)/len(self.cir_buffer_rot_vel))
+            self.publish_cmd_vel(x_vel,y_vel,rot_vel)
         
-        close = self.safe_rl.closest_arrays_to_zero(flattened_obs, 10, x,y)
+        close, cl1, cl2, cl3 = self.safe_rl.closest_arrays_to_zero(flattened_obs, 5,x,y, flattened_obs_zone_1 ,flattened_obs_zone_2, flattened_obs_zone_3)
 
         # print("WOW THATS ALOT OF ARRAY",close)
 
+        # remember that plotting is to slow, we will then miss laserscan
         self.ax.clear()
         self.ax.scatter(y,x,color='red')
-        self.ax.scatter(obstacles_y,obstacles_x, color = 'blue')
+        self.ax.scatter(obstacles_y,obstacles_x)
         # Plot each point from the 'close' arrays
-        for point in close:
+        for point in cl1:
             self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
+        for point in cl2:
+            self.ax.scatter(point[1], point[0], color='cyan')  # Assuming each point in 'close' is [y, x]
+        for point in cl3:
+            self.ax.scatter(point[1], point[0], color='yellow')  # Assuming each point in 'close' is [y, x]
 
-
-        
         plt.pause(0.005)
 
             
