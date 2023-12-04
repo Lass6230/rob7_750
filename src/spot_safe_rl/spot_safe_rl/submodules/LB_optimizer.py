@@ -550,17 +550,17 @@ class SafeLogBarrierOptimizer:
         self.eta = (5/(1+np.exp(-5*(max(self.h(xt))*100+1)))*self.eta+0.0001)
 
 
-        if self.eta >= 10e+10:
+        """if self.eta >= 10e+10:
             self.sigma = 0.00000001
             self.hat_sigma = 0.0000001
             self.eta = 10e+10
         else:
             self.sigma = 0.005   
-            self.hat_sigma = 0.00001 
+            self.hat_sigma = 0.00001""" 
 
 
         print("is smakll plz", (max(self.h(xt))))
-        print("IS i work?",10/(1+np.exp(-5*(max(self.h(xt))*100+1))))
+        print("IS i work?",10/(1+np.exp(-10*(max(self.h(xt))*100+1))))
 
 
         print("WE ETA SPAGETT TONIGHT", self.eta)
@@ -632,7 +632,7 @@ class FhFunction:
         # use distance to object to control eta0
         # might not be good to just take the mean because then it might not see small object in front of it
 
-        if closest_obstacle is not None:
+        """if closest_obstacle is not None:
             for point in closest_obstacle:
                 length_to_obs.append( 0.5 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
                 #print("LENGY", length_to_obs)
@@ -642,8 +642,8 @@ class FhFunction:
                 # get_away = 0.01 * np.array([length_to_obs, length_to_obs, length_to_obs])
                 #print("SMELLY BOI", get_away)
             num = sum(length_to_obs)/len(length_to_obs)
-            get_away = 0.01 * np.array([num, num, num])
-        """if cl_obs_1 is not None and cl_obs_2 is not None and cl_obs_3 is not None:   
+            get_away = 0.01 * np.array([num, num, num])"""
+        if cl_obs_1 is not None and cl_obs_2 is not None and cl_obs_3 is not None:   
             if len(cl_obs_1) != 0:
                 for point in cl_obs_1:
                     length_to_obs_1.append(2 - np.linalg.norm(np.array(point) - np.array(x)[:2])) 
@@ -654,7 +654,7 @@ class FhFunction:
                 for point in cl_obs_3:
                     length_to_obs_3.append(2 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
             get_away =  np.array([0.01*(sum(length_to_obs_1)/len(length_to_obs_1)), 0.01*(sum(length_to_obs_2)/len(length_to_obs_2)), 0.01*(sum(length_to_obs_3)/len(length_to_obs_3))])
-        """
+        
         #print("get awayyyy", get_away)
         return np.array(get_away)
 
@@ -811,7 +811,7 @@ class FhFunction:
         
         # ang_factor = 0.001
         # Set linear velocity proportional to the distance to the target
-        distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor*np.linalg.norm(self.robot_goal[1] - x[1]), [ang_factor*self.angular_vel]])
+        distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor*np.linalg.norm(self.robot_goal[1] - x[1]), ang_factor*self.angular_vel])
         # self.linear_vel = 0.005 * distance_to_target    
         self.linear_vel = distance_to_target 
         # print("velocity", self.linear_vel)
@@ -889,7 +889,7 @@ class Simulation:
     x0: np.array = None
     M0: float = 0.5 / d
     Ms: np.array = 0.1 * np.ones(m)
-    sigma: float = 0.005
+    sigma: float = 0.05
     hat_sigma: float = 0.00001
     init_std: float = 0.05 
     eta0: float = 0.5
@@ -915,7 +915,7 @@ class Simulation:
     runtimes: list = None
     obstacle: np.array = ([500.0, 500.0, 50])
     n: int = 5
-    n_iters: int = 1000
+    n_iters: int = 800
     nu: float = 0.1
     grid_size = (1000, 1000)
     robot_start = ([0., 0.])
