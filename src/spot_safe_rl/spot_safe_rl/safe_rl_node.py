@@ -52,7 +52,7 @@ class SafeRlNode(Node):
         
         self.actccepted_distance = 0.3
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
-        self.goal = [4.0,0.0, 0.0]
+        self.goal = [2.0,0.0, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         
 
