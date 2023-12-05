@@ -52,7 +52,7 @@ class SafeRlNode(Node):
         
         self.actccepted_distance = 0.3
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
-        self.goal = [5.0,-2.0, 0.0]
+        self.goal = [5.0,0.0, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         
 
@@ -94,6 +94,8 @@ class SafeRlNode(Node):
         # self.get_logger().info('X: "%f" ' % x)
         # self.get_logger().info('Y: "%f"' % y)
         for i in range(len(msg.ranges)):
+            
+                
             
             obstacles_x.append((math.cos(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+x)
             obstacles_y.append((math.sin(msg.angle_min+(i*msg.angle_increment)+rot)*msg.ranges[i])+y)

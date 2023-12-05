@@ -560,7 +560,7 @@ class SafeLogBarrierOptimizer:
 
 
         print("is smakll plz", (max(self.h(xt))))
-        print("IS i work?",1.1/(1+np.exp(-10*(max(self.h(xt))*100+1))))
+        #print("IS i work?",4/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1/(1+np.exp(-1*(max(self.h(xt))*100+0.5)))*self.eta+0.0001)
 
 
         print("WE ETA SPAGETT TONIGHT", self.eta)
@@ -646,16 +646,16 @@ class FhFunction:
         if cl_obs_1 is not None and cl_obs_2 is not None and cl_obs_3 is not None:   
             if len(cl_obs_1) != 0:
                 for point in cl_obs_1:
-                    length_to_obs_1.append(0.5 - np.linalg.norm(np.array(point) - np.array(x)[:2])) 
+                    length_to_obs_1.append(0.9 - np.linalg.norm(np.array(point) - np.array(x)[:2])) 
             if len(cl_obs_1) != 0:
                 for point in cl_obs_2:
-                    length_to_obs_2.append(0.5 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
+                    length_to_obs_2.append(0.9 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
             if len(cl_obs_1) != 0:
                 for point in cl_obs_3:
-                    length_to_obs_3.append(0.5 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
+                    length_to_obs_3.append(0.9 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
             get_away =  np.array([0.01*(sum(length_to_obs_1)/len(length_to_obs_1)), 0.01*(sum(length_to_obs_2)/len(length_to_obs_2)), 0.01*(sum(length_to_obs_3)/len(length_to_obs_3))])
         
-        #print("get awayyyy", get_away)
+        print("get awayyyy", get_away)
         return np.array(get_away)
 
         # step_costs = [self.linear_vel * math.cos(self.theta),
@@ -809,9 +809,9 @@ class FhFunction:
             lin_factor = 0.06
             ang_factor = 0.01"""
 
-        lin_factor = 0.014
-        lin_factor_y= 0.01
-        ang_factor = 0.005    
+        lin_factor = 0.03
+        lin_factor_y= 0.02
+        ang_factor = 0.01   
 
         
         # ang_factor = 0.001
