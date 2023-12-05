@@ -52,7 +52,7 @@ class SafeRlNode(Node):
         
         self.actccepted_distance = 0.3
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
-        self.goal = [3.0,0.0, 0.0]
+        self.goal = [5.0,-2.0, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         
 
@@ -82,7 +82,7 @@ class SafeRlNode(Node):
         self.publish_cmd_vel(x_vel,y_vel,rot_vel)
 
     def sensor_callback(self, msg):
-        # print("sensor callback")
+        print("lidar points: ", len(msg.ranges))
         x,y,rot = self.location()
         
         # self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
@@ -108,7 +108,7 @@ class SafeRlNode(Node):
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
-            self.goal = [np.random.random_integers(0,6), np.random.random_integers(-2,2), np.random.random_integers(-3.14,3.14)]
+            self.goal = [np.random.random_integers(0,6), np.random.random_integers(-3,1), np.random.random_integers(-3.14,3.14)]
             self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
             self.cir_buffer_x_vel.clear()
             self.cir_buffer_y_vel.clear()

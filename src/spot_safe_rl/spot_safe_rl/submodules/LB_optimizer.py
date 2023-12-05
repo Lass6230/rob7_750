@@ -547,7 +547,7 @@ class SafeLogBarrierOptimizer:
             if self.eta <= 0.00000000000001:
                 self.eta = 0.00000000000001"""
         
-        self.eta = (3/(1+np.exp(-10*(max(self.h(xt))*100+1)))*self.eta+0.0001)
+        self.eta = (4/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1/(1+np.exp(-1*(max(self.h(xt))*100+0.5)))*self.eta+0.0001)
 
 
         """if self.eta >= 10e+10:
@@ -809,12 +809,14 @@ class FhFunction:
             lin_factor = 0.06
             ang_factor = 0.01"""
 
-        lin_factor = 0.01
-        ang_factor = 0.01    
+        lin_factor = 0.014
+        lin_factor_y= 0.01
+        ang_factor = 0.005    
+
         
         # ang_factor = 0.001
         # Set linear velocity proportional to the distance to the target
-        distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor*np.linalg.norm(self.robot_goal[1] - x[1]), ang_factor*self.angular_vel])
+        distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor_y*np.linalg.norm(self.robot_goal[1] - x[1]), ang_factor*self.angular_vel])
         # self.linear_vel = 0.005 * distance_to_target    
         self.linear_vel = distance_to_target 
         # print("velocity", self.linear_vel)
