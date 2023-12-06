@@ -18,13 +18,21 @@ def generate_launch_description():
 
 	# Nav2
 	# Static TF
-	if 1:
+	if 0:
 		ld.add_action(Node(
 			package="tf2_ros",
 			executable="static_transform_publisher",
 			name="static_transform_publisher",
 			output="log",
 			arguments=["-0.13", "0.0", "0.125", "0.0", "0.0", "0.0", "front_rail", "cloud"],
+		))
+	if 1:
+		ld.add_action(Node(
+			package="tf2_ros",
+			executable="static_transform_publisher",
+			name="static_transform_publisher",
+			output="log",
+			arguments=["-0.13", "0.0", "0.125", "0.0", "0.0", "0.0", "front_rail", "velodyne"],
 		))
 
 	# Spot driver
@@ -45,7 +53,7 @@ def generate_launch_description():
 		# ]
 
 		
-	if 1:
+	if 0:
 		ld.add_action(Node(
 				package='rviz2',
 				namespace='rviz2',
