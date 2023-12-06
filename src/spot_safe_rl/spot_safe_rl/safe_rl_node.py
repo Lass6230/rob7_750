@@ -27,7 +27,7 @@ class SafeRlNode(Node):
 
         self.goal_counter = 0
         self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
-        self.big_room_goals_ = [[14.5, -7 , 0.0],[14.5,7],[0.0,7,0.0],[14.5, -7,0.0],[0.0,-7,0.0],[0.0,0.0,0.0],[14.5,7,0.0],[0.0,-7,0.0]]
+        self.big_room_goals_ = [[14.5, -7 , 0.0],[14.5,7, 0.0],[0.0,7,0.0],[14.5, -7,0.0],[0.0,-7,0.0],[0.0,0.0,0.0],[14.5,7,0.0],[0.0,-7,0.0]]
         self.small_room_goals_ = [[],[]]
         buffer_size = 5
         self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
