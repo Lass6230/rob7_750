@@ -120,6 +120,7 @@ class SafeLogBarrierOptimizer:
     This class allows to run LB-SGD optimization procedure given the oracle for the objective f and constraint h. 
     """
     x_last = None
+    dbLast = np.array([0.01,0.01,0.01])
     cmd_vel = None
     obstacle_list: list = None
     obstacle: np.array = None
@@ -160,6 +161,31 @@ class SafeLogBarrierOptimizer:
     runtimes: list = None
     t_count: int = 0
     previous_time: float = 0.0
+    jacobian_t_dot = None
+    correction_factor = np.array([1.,1.,1.])
+    
+    
+    def correctDirection(self):
+         self.correction_factor = np.array([1.,1.,1.])
+         if self.eta > 0.5:
+            if self.jacobian_t_dot[0] > 0.:
+                self.correction_factor[0] = 2./self.eta
+            else:
+                self.correction_factor[0] = 1.
+
+            if self.jacobian_t_dot[1] > 0.:
+                self.correction_factor[1] = 2./self.eta
+            else:
+                self.correction_factor[1] = 1.
+
+            if self.jacobian_t_dot[2] > 0.:
+                self.correction_factor[2] = 2/self.eta
+            else:
+                self.correction_factor[2] = 1.
+             
+
+         return self.correction_factor
+
     
     def compute_gamma(self, t: int) -> float:
         """
@@ -184,7 +210,7 @@ class SafeLogBarrierOptimizer:
         gamma = min(1. / step_norm * np.min(alphas / ( 2 * L_dirs +  alphas_reg**0.5 * self.Ms**0.5)), 
                     1. / M2 )
         
-        #print("gamma", gamma)
+        print("gamma", gamma)
         return gamma
 
     def dB_estimator(self):
@@ -198,8 +224,27 @@ class SafeLogBarrierOptimizer:
         #print("df_e", df_e)
         denominators = 1. / np.maximum(np.ones(self.m) * self.reg, alphas)
         #print("denominators", denominators)
-        dB = df_e + self.eta * jacobian.T.dot(denominators)
-        #print("eta", self.eta)
+        self.jacobian_t_dot = jacobian.T.dot(denominators)
+        
+        self.correctDirection()
+
+        print("COREEECT", self.correction_factor)
+
+        dB = df_e + self.correction_factor*self.eta * jacobian.T.dot(denominators)
+        #dB = df_e + self.eta * jacobian.T.dot(denominators)
+        
+
+        """if dB[0]  < 0.0:elf.st
+            dB[0] = self.dbLast[0]
+
+        if dB[1]  < 0.0:
+            dB[1] = self.dbLast[1]
+
+        if dB[2]  < 0.0:
+            dB[2] = self.dbLast[2]        elf.st
+        self.dbLast = dB"""
+        print("jacobian", jacobian.T.dot(denominators))
+        print("DB", dB)
         return dB
     
     def barrier_SGD(self):
@@ -268,10 +313,10 @@ class SafeLogBarrierOptimizer:
         x_prev = x0
         # print(self.f(self.x0))
           
-        print("x_long_trajectory in log_barrier_decay", x0)
+        #print("x_long_trajectory in log_barrier_decay", x0)
        
-        print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
-        print("T_total in log_barrier_decay", T_total)
+        #print("constraints_long_trajectory in log_barrier_decay", constraints_long_trajectory)
+        #print("T_total in log_barrier_decay", T_total)
         
         
         for k in range(self.K):
@@ -511,7 +556,7 @@ class SafeLogBarrierOptimizer:
 
         self.cmd_vel = (xt-self.x_last)/(time()-self.previous_time)
 
-        print("xt", xt)
+        #print("xt", xt)
         # Tk += 1
         
         x_trajectory = np.array([xt]) # # is the policy
@@ -547,16 +592,16 @@ class SafeLogBarrierOptimizer:
             if self.eta <= 0.00000000000001:
                 self.eta = 0.00000000000001"""
         
-        self.eta = (2/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1/(1+np.exp(-1*(max(self.h(xt))*100+1)))*self.eta+0.0001)
+        self.eta = (2/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 0.5/(1+np.exp(-2*(max(self.h(xt))*100+1)))*self.eta + 0.001)
 
+        #self.eta = (0.5/(1+np.exp(-1*(max(self.h(xt))*100+0.5))))
 
-        """if self.eta >= 10e+10:
-            self.sigma = 0.00000001
-            self.hat_sigma = 0.0000001
-            self.eta = 10e+10
-        else:
-            self.sigma = 0.005   
-            self.hat_sigma = 0.00001""" 
+        #self.eta = self.eta * self.factor
+
+        if self.eta >= 1000:
+            self.eta = 1000
+
+            
 
 
         print("is smakll plz", (max(self.h(xt))))
@@ -646,16 +691,16 @@ class FhFunction:
         if cl_obs_1 is not None and cl_obs_2 is not None and cl_obs_3 is not None:   
             if len(cl_obs_1) != 0:
                 for point in cl_obs_1:
-                    length_to_obs_1.append(0.9 - np.linalg.norm(np.array(point) - np.array(x)[:2])) 
+                    length_to_obs_1.append(1 - np.linalg.norm(np.array(point) - np.array(x)[:2])) 
             if len(cl_obs_1) != 0:
                 for point in cl_obs_2:
-                    length_to_obs_2.append(0.9 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
+                    length_to_obs_2.append(1 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
             if len(cl_obs_1) != 0:
                 for point in cl_obs_3:
-                    length_to_obs_3.append(0.9 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
+                    length_to_obs_3.append(1 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
             get_away =  np.array([0.01*(sum(length_to_obs_1)/len(length_to_obs_1)), 0.01*(sum(length_to_obs_2)/len(length_to_obs_2)), 0.01*(sum(length_to_obs_3)/len(length_to_obs_3))])
         
-        print("get awayyyy", get_away)
+        #print("get awayyyy", get_away)
         return np.array(get_away)
 
         # step_costs = [self.linear_vel * math.cos(self.theta),
@@ -810,8 +855,9 @@ class FhFunction:
             ang_factor = 0.01"""
 
         lin_factor = 0.03
-        lin_factor_y= 0.02
-        ang_factor = 0.01   
+        lin_factor_y= 0.03
+        ang_factor = 0.01  
+
 
         
         # ang_factor = 0.001
@@ -897,7 +943,7 @@ class Simulation:
     sigma: float = 0.0000005
     hat_sigma: float = 0.00001
     init_std: float = 0.00005 
-    eta0: float = 0.9
+    eta0: float = 0.5
     eta: float = None
     step: np.array = None
     reg: float = None
@@ -915,7 +961,7 @@ class Simulation:
     errors_total: list = None
     constraints_total: list = None
     beta: float = None
-    delta: float = 0.1
+    delta: float = 0.05
     factor: float = 0.5
     runtimes: list = None
     obstacle: np.array = ([500.0, 500.0, 50])
@@ -947,7 +993,7 @@ class Simulation:
             f = self.myFhFunctions.f,
             h = self.myFhFunctions.h, 
             sigma = self.sigma,
-            hat_sigma = 0.01,
+            hat_sigma = self.hat_sigma,
             delta = self.delta,
             m = self.m,
             d = self.d,
