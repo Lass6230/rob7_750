@@ -26,7 +26,7 @@ class SafeRlNode(Node):
         super().__init__('safe_rl_node')
 
         self.goal_counter = 0
-        self.medium_room_goals_ = [[10.8,4.5],[10.8,-4.5],[0.0,-4.5],[10.8,4.5]]
+        self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
         self.big_room_goals_ = [[14.5, -7 , 0.0],[14.5,7],[0.0,7,0.0],[14.5, -7,0.0],[0.0,-7,0.0],[0.0,0.0,0.0],[14.5,7,0.0],[0.0,-7,0.0]]
         self.small_room_goals_ = [[],[]]
         buffer_size = 5
@@ -170,6 +170,7 @@ class SafeRlNode(Node):
             self.ax.scatter(point[1], point[0], color='cyan')  # Assuming each point in 'close' is [y, x]
         for point in cl3:
             self.ax.scatter(point[1], point[0], color='yellow')  # Assuming each point in 'close' is [y, x]
+        self.ax.scatter(self.goal[1], self.goal[0], color='green')  # Assuming each point in 'close' is [y, x]    
 
         plt.pause(0.005)
 
