@@ -25,8 +25,9 @@ class SafeRlNode(Node):
     def __init__(self):
         super().__init__('safe_rl_node')
 
-
+        self.goal_counter = 0
         self.medium_room_goals_ = [[10.8,4.5],[10.8,-4.5],[0.0,-4.5],[10.8,4.5]]
+
 
         buffer_size = 5
         self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
@@ -56,8 +57,9 @@ class SafeRlNode(Node):
         self.actccepted_distance = 0.3
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
         self.goal = [10.0,0.0, 0.0]
+        # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
+        self.goal = self.medium_room_goals_[self.goal_counter]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
-        
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
                                           history=rclpy.qos.HistoryPolicy.KEEP_LAST,
@@ -113,8 +115,12 @@ class SafeRlNode(Node):
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
-            self.goal = [np.random.random_integers(0,6), np.random.random_integers(-3,1), np.random.random_integers(-3.14,3.14)]
-            self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
+            self.goal_counter += 1
+            if self.goal_counter < len(self.medium_room_goals_):
+                self.goal = self.medium_room_goals_[self.goal_counter]
+                self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
+            # self.goal = [np.random.random_integers(0,6), np.random.random_integers(-3,1), np.random.random_integers(-3.14,3.14)]
+            # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
             self.cir_buffer_x_vel.clear()
             self.cir_buffer_y_vel.clear()
             self.cir_buffer_rot_vel.clear()
@@ -156,6 +162,7 @@ class SafeRlNode(Node):
         self.ax.clear()
         self.ax.scatter(y,x,color='red')
         self.ax.scatter(obstacles_y,obstacles_x)
+        
         # Plot each point from the 'close' arrays
         for point in cl1:
             self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
