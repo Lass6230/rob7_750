@@ -854,9 +854,9 @@ class FhFunction:
             lin_factor = 0.06
             ang_factor = 0.01"""
 
-        lin_factor = 0.03
-        lin_factor_y= 0.03
-        ang_factor = 0.01  
+        lin_factor = 0.015
+        lin_factor_y= 0.015
+        ang_factor = 0.005  
 
 
         
