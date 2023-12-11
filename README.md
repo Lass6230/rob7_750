@@ -15,8 +15,7 @@ Rob 7 group 750 semester project
     
 
 ## In spot_driver spot_login.yaml
-    username: "admin"
-    password: "mt9pe6pa0rm5"
+    
     hostname: "192.168.80.3"
     cmd_duration: 0.125
 
