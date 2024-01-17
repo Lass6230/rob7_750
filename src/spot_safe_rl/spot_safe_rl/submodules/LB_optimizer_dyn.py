@@ -77,10 +77,16 @@ class Oracle:
     n: int = 1                         
         
     def sample(self, x: np.array) -> None:
+        # print("x sample1",x)
         self.objective_value = self.f(x) + np.random.normal(0, self.sigma / self.n**0.5)
+        # print("x sample2",x)
+        # print("obs value",self.objective_value)
         self.constraints_values = self.h(x) + np.random.normal(0, self.sigma / self.n**0.5, self.m)
-        self.df = nd.Gradient(self.f)(x)
-        self.dh = nd.Gradient(self.h)(x)
+        # print("x sample3",x)
+        self.df = nd.Gradient((self.f)(x))
+        # print("x sample4",x)
+        self.dh = nd.Gradient((self.h)(x))
+        # print("x sample5",x)
         if self.zeroth_order:
             self.hat_sigma = self.d * (self.sigma / self.nu + self.nu)
             for j in range(self.n):
@@ -119,7 +125,11 @@ class SafeLogBarrierOptimizer:
     """
     This class allows to run LB-SGD optimization procedure given the oracle for the objective f and constraint h. 
     """
+    x_array_last = [[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0]]
+    sample_time: float = 0.15
+    horizon: int = 10
     x_last = None
+    u_last = [0.0,0.0,0.0]
     dbLast = np.array([0.01,0.01,0.01])
     cmd_vel = None
     obstacle_list: list = None
@@ -140,6 +150,8 @@ class SafeLogBarrierOptimizer:
     oracle: Oracle = None
     f: Callable = None
     h: Callable = None
+    g: Callable = None 
+    predicted_horizon: Callable = None
     d: float = None
     m: float = None
     reg: float = None
@@ -541,7 +553,7 @@ class SafeLogBarrierOptimizer:
         
             
         #print("ORacle Xo", xt)
-        self.oracle.sample(self.x_last)  
+        self.oracle.sample(self.x_array_last) # maybe change to self.u_last 
         
         self.step = self.dB_estimator()
         step_norm = np.linalg.norm(self.step)
@@ -549,12 +561,20 @@ class SafeLogBarrierOptimizer:
         gamma = self.compute_gamma(self.t_count)
         
         # if not(step_norm < self.eta and self.no_break == False):
-
-
-
-        xt = self.x_last - gamma * self.step # calculate and update policy
-
-        self.cmd_vel = (xt-self.x_last)/(time()-self.previous_time)
+        ut = []
+        xt = []
+        xt.append(self.x_last)
+        # ut.append(self.u_last)
+        for h in range(self.horizon):
+            xt.append(xt[h]-gamma*self.step)
+            ut.append((xt[h+1]-xt[h])/self.sample_time)
+        
+        # xt = self.x_last - gamma * self.step # calculate and update policy
+        # self.u_last = ut[0]
+        self.cmd_vel = ut[0]
+        self.x_array_last = xt
+        self.x_array_last.pop(0)
+        print("x_last_array",self.x_array_last)
 
         #print("xt", xt)
         # Tk += 1
@@ -576,8 +596,8 @@ class SafeLogBarrierOptimizer:
 
 
 
-        self.xs.append(xt)
-        self.x_last = xt
+        self.xs.append(xt[1])
+        # self.x_last = xt
         """if self.t_count == 0:
             self.x0 = self.x_last
             if self.h(xt)[0] <= -0.02:
@@ -604,20 +624,22 @@ class SafeLogBarrierOptimizer:
             
 
 
-        print("is smakll plz", (max(self.h(xt))))
+        # print("is smakll plz", (max(self.h(xt))))
         #print("IS i work?",4/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1/(1+np.exp(-1*(max(self.h(xt))*100+0.5)))*self.eta+0.0001)
 
 
         print("WE ETA SPAGETT TONIGHT", self.eta)
 
         self.previous_time = time()
-        return xt#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
+        return xt[1]#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
           
   
 
 
 # @dataclass
 class FhFunction:
+    horizon: int = 10
+    sample_time: float = 0.1
     obstacle: np.array = [(500., 500., 50.)]
     obs_x_pos: float = 500.
     obs_y_pos: float = 500.
@@ -673,53 +695,33 @@ class FhFunction:
         length_to_obs_1 = [0.0]
         length_to_obs_2 = [0.0]
         length_to_obs_3 = [0.0]
-        # try using multiple objects and try chaning eta0 in the barrier_SGD_non_block function
-        # use distance to object to control eta0
-        # might not be good to just take the mean because then it might not see small object in front of it
 
-        """if closest_obstacle is not None:
-            for point in closest_obstacle:
-                length_to_obs.append( 0.5 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
-                #print("LENGY", length_to_obs)
-                #apple = max(p for p in length_to_obs)
-                #distances_x = [np.linalg.norm(apple[0] - x[0])]
-                #distances_y = [np.linalg.norm(apple[1] - x[1])]
-                # get_away = 0.01 * np.array([length_to_obs, length_to_obs, length_to_obs])
-                #print("SMELLY BOI", get_away)
-            num = sum(length_to_obs)/len(length_to_obs)
-            get_away = 0.01 * np.array([num, num, num])"""
-        if cl_obs_1 is not None and cl_obs_2 is not None and cl_obs_3 is not None:   
-            if len(cl_obs_1) != 0:
-                for point in cl_obs_1:
-                    length_to_obs_1.append(1 - np.linalg.norm(np.array(point) - np.array(x)[:2])) 
-            if len(cl_obs_1) != 0:
-                for point in cl_obs_2:
-                    length_to_obs_2.append(1 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
-            if len(cl_obs_1) != 0:
-                for point in cl_obs_3:
-                    length_to_obs_3.append(1 - np.linalg.norm(np.array(point) - np.array(x)[:2]))
-            get_away =  np.array([0.01*(sum(length_to_obs_1)/len(length_to_obs_1)), 0.01*(sum(length_to_obs_2)/len(length_to_obs_2)), 0.01*(sum(length_to_obs_3)/len(length_to_obs_3))])
+        if closest_obstacle is not None:   
+            if len(closest_obstacle) != 0:
+                length_to_obs_h = []
+                for i in range(self.horizon):
+                    length_to_obs_1 = [0.0]
+                    for point in closest_obstacle:
+                        length_to_obs_1.append(1 - np.linalg.norm(np.array(point) - np.array(x[i])[:2])) 
+                    length_to_obs_h.append(0.1*(sum(length_to_obs_1)/len(length_to_obs_1)))
+            # if len(cl_obs_1) != 0:
+            #     for point in cl_obs_2:
+            #         length_to_obs_2.append(1 - np.linalg.norm(np.array(point) - np.array(x[0])[:2]))
+            # if len(cl_obs_1) != 0:
+            #     for point in cl_obs_3:
+            #         length_to_obs_3.append(1 - np.linalg.norm(np.array(point) - np.array(x[0])[:2]))
+            # get_away =  np.array([, 0.01*(sum(length_to_obs_2)/len(length_to_obs_2)), 0.01*(sum(length_to_obs_3)/len(length_to_obs_3))])
+        else:
+            length_to_obs_h = []
+            for i in range(self.horizon):
+                length_to_obs_1 = [0.0]
+                    
+                length_to_obs_h.append(0.0)
         
+        return length_to_obs_h
         #print("get awayyyy", get_away)
-        return np.array(get_away)
+        # return np.array(get_away)
 
-        # step_costs = [self.linear_vel * math.cos(self.theta),
-        #                     self.linear_vel * math.sin(self.theta),
-        #                     self.angular_vel / self.wheel_distance]
-                
-        # target_angle = math.atan2(self.robot_goal[1] - x[1], self.robot_goal[0] - x[0])
-        
-        # angle_diff = target_angle - self.theta
-
-        # while angle_diff > math.pi:
-        #     angle_diff -= 2 * math.pi
-        # while angle_diff < -math.pi:
-        #     angle_diff += 2 * math.pi
-
-        # # Set angular velocity proportional to the angle difference
-        # self.angular_vel = 0.05 * angle_diff
-
-        # closest_obstacle = self.closest_points
 
         
         
@@ -826,120 +828,49 @@ class FhFunction:
         # return np.array([0.0,0.0,0.0])    
 
     def f(self, x):
-        
-        theta = 0.0 # this should be an the robot angle in the world
-        state_space_dot = [[np.cos(theta),-np.sin(theta),0],[np.sin(theta),np.cos(theta),0],[0,0,1]] # think dynamic matrix
-
-        
-        step_costs = [self.linear_vel * math.cos(self.theta),
-                      self.linear_vel * math.sin(self.theta),
-                      self.angular_vel / self.wheel_distance]
-        
-        target_angle = math.atan2((self.robot_goal[1] - x[1]), (self.robot_goal[0] - x[0]))
-        
-        # if 
-        
-        # angle_diff = 4*np.linalg.norm(target_angle - x[2])
-        angle_diff = np.linalg.norm(target_angle - x[2])
-        
-        # while angle_diff > math.pi:
-        #     angle_diff -= 2 * math.pi
-        # while angle_diff < -math.pi:
-        #     angle_diff += 2 * math.pi
-
-        # Set angular velocity proportional to the angle difference
-        #0.05 * angle_diff
-        self.angular_vel = angle_diff
-        # self.angular_vel = 
-        """if angle_diff > 0.5:
-            lin_factor = 0.01
-            ang_factor = 0.06
-        else:
-            lin_factor = 0.06
-            ang_factor = 0.01"""
+        print("x_array: ",x)
 
         lin_factor = 0.015
         lin_factor_y= 0.015
         ang_factor = 0.005  
+        distance_to_target = np.array([0.0,0.0,0.0])
+
+        for i in range(self.horizon):
+
+            target_angle = math.atan2((self.robot_goal[1] - x[i][1]), (self.robot_goal[0] - x[i][0]))
+        
+       
+            angle_diff = np.linalg.norm(target_angle - x[i][2])
+        
+
+            self.angular_vel = angle_diff
+      
 
 
         
-        # ang_factor = 0.001
-        # Set linear velocity proportional to the distance to the target
-        distance_to_target = np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[0]) , lin_factor_y*np.linalg.norm(self.robot_goal[1] - x[1]), ang_factor*self.angular_vel])
-        # self.linear_vel = 0.005 * distance_to_target    
+        
+            distance_to_target += np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[i][0]) , lin_factor_y*np.linalg.norm(self.robot_goal[1] - x[i][1]), ang_factor*self.angular_vel])
+         
         self.linear_vel = distance_to_target 
-        # print("velocity", self.linear_vel)
+  
 
-        # if angle_diff < 0.05:
-        #     self.linear_vel[2] = 0.005*np.linalg.norm(0.0)
-        #     self.linear_vel[0] = 0.005*np.linalg.norm(self.robot_goal[0] - x[0])
-        #     self.linear_vel[1] = 0.005*np.linalg.norm(self.robot_goal[1] - x[1])
-        #     # print("angular_taget: " , self.linear_vel)
-        #     return self.linear_vel
-        # else:
-        #     self.linear_vel[0] = 0.0025*np.linalg.norm(0.0)
-        #     self.linear_vel[1] = 0.0025 *np.linalg.norm(0.0)
-        #     self.linear_vel[2] = 0.0095 *np.linalg.norm(target_angle - x[2])
-        #     # print("angular_taget: " , self.linear_vel)
-        #     return self.linear_vel
-
-        
-        #closest_step = min(step_costs, key=lambda step: (distance_to_target - step[0])**2 + (angle_diff - step[1])**2)
-        # repulsive_force = np.array([0., 0.])
-        # new_pos = np.array([0., 0.])
-
-        """for obs in self.obstacle:
-            diff = x - obs[:2]
-            distance = np.linalg.norm(diff)
-
-            if distance <= 8* obs[2]:
-                repulsive_force += 10000 * ((2.4 * obs[2] - distance)) * diff
-            
-            if distance <= 5 * obs[2]:
-                self.j = 1
-            elif distance >= 6 * obs[2]:
-                self.j = 0
-                tangent = 0   
-            
-            
-
-            while self.j == 1:
-                # Calculate the vector from the robot to the obstacle
-                diff_to_obs = x - obs[:2]
-
-                # Calculate the tangent direction around the obstacle
-                tangent = np.array([-diff_to_obs[1], diff_to_obs[0]])
-
-                # Normalize the tangent vector
-                tangent /= np.linalg.norm(tangent)
-
-                # Calculate the desired position around the obstacle using the tangent
-                next_point_of_interest = tangent*200  # Adjust the distance as needed
-
-                print("Next Point of Interest:", next_point_of_interest)
-
-                vec = np.linalg.norm(next_point_of_interest) 
-
-                print ("vec", vec)
-
-
-                # Return the distance to the next point of interest as a guidance parameter
-                return -next_point_of_interest """
-
-        #print("WHERE WE GOING", distance_to_target)   
-
-        # Calculate the distance to the robot goal for the updated position
-       # updated_distance = np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] ),
-       #                              np.linalg.norm(closest_step[1] - self.robot_goal[1] )])
-        # print("lin_vel", self.linear_vel)
-        #return updated_distance
-       # return  np.array([np.linalg.norm(closest_step[0] - self.robot_goal[0] + repulsive_force[0]), np.linalg.norm(closest_step[1] - self.robot_goal[1] + repulsive_force[1])]) 
         return distance_to_target
+    
+    def predicted_horizon(self, xt, ut):
+        x = []
+        x.append(xt)
+        for i in range(self.horizon):
+            x.append(self.g(x[i],ut))
+        return x
+    
+    def g(self,xt,ut):
+        g_t = [[np.cos(xt[2]),-np.sin(xt[2]),0],[np.sin(xt[2]),np.cos(xt[2]),0],[0,0,1]] # think dynamic matrix
+        xt_1 = xt+self.sample_time*g_t*ut
+        return xt_1
 # @dataclass
 class Simulation:
     d: float = 3
-    m: float = 3
+    m: float = 10 # needs to same value as horizon
     x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
     M0: float = 0.5 / d
@@ -1006,6 +937,7 @@ class Simulation:
             n = self.n)
         
         self.opt = SafeLogBarrierOptimizer(
+
             x00 = self.x00,
             x0 = self.x00,
             M0 = self.M0,
@@ -1017,6 +949,8 @@ class Simulation:
             oracle = self.my_oracle,
             f = self.myFhFunctions.f,
             h = self.myFhFunctions.h,
+            # g_t = self.myFhFunctions.g,
+            predicted_horizon = self.myFhFunctions.predicted_horizon,
             d = self.d,
             m = self.m,
             reg = 0.1,

@@ -75,7 +75,7 @@ class SafeRlNode(Node):
         self.subscription  # prevent unused variable warning
 
         self.count = 0
-        self.goal = [2.0,0.0, 0.0]
+        # self.goal = [2.0,0.0, 0.0]
 
         # self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel_test",self.cmd_vel_tester,10)
         # self.cmd_vel_sub
