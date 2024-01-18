@@ -60,7 +60,7 @@ class SafeRlNode(Node):
         # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         # self.goal = self.big_room_goals_[self.goal_counter]
         # self.goals = self.big_room_goals_
-        self.goal = [0.0,2.0, 0.0]
+        self.goal = [0.0,4.3, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
