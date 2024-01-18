@@ -163,21 +163,21 @@ class SafeRlNode(Node):
 
         # remember that plotting is to slow, we will then miss laserscan
 
-        self.ax.clear()
-        self.ax.scatter(y,x,color='red')
-        self.ax.scatter(obstacles_y,obstacles_x)
+        # self.ax.clear()
+        # self.ax.scatter(y,x,color='red')
+        # self.ax.scatter(obstacles_y,obstacles_x)
         
         # Plot each point from the 'close' arrays
 
-        for point in cl1:
-            self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
-        for point in cl2:
-            self.ax.scatter(point[1], point[0], color='cyan')  # Assuming each point in 'close' is [y, x]
-        for point in cl3:
-            self.ax.scatter(point[1], point[0], color='yellow')  # Assuming each point in 'close' is [y, x]
-        self.ax.scatter(self.goal[1], self.goal[0], color='green')  # Assuming each point in 'close' is [y, x]    
+        # for point in cl1:
+        #     self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
+        # for point in cl2:
+        #     self.ax.scatter(point[1], point[0], color='cyan')  # Assuming each point in 'close' is [y, x]
+        # for point in cl3:
+        #     self.ax.scatter(point[1], point[0], color='yellow')  # Assuming each point in 'close' is [y, x]
+        # self.ax.scatter(self.goal[1], self.goal[0], color='green')  # Assuming each point in 'close' is [y, x]    
 
-        plt.pause(0.005)
+        # plt.pause(0.005)
 
             
             # self.publish_cmd_vel(vel[0],vel[1],vel[2])

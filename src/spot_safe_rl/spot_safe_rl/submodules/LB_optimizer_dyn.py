@@ -125,9 +125,11 @@ class SafeLogBarrierOptimizer:
     """
     This class allows to run LB-SGD optimization procedure given the oracle for the objective f and constraint h. 
     """
-    x_array_last = [[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0]]
+    # x_array_last = [[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0]]
+    
     sample_time: float = 0.25
-    horizon: int = 20
+    horizon: int = 40
+    x_array_last = np.zeros((horizon,3))
     x_last = None
     u_last = [0.0,0.0,0.0]
     dbLast = np.array([0.01,0.01,0.01])
@@ -612,7 +614,7 @@ class SafeLogBarrierOptimizer:
             if self.eta <= 0.00000000000001:
                 self.eta = 0.00000000000001"""
         
-        self.eta = (7/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1.5/(1+np.exp(-2*(max(self.h(xt))*100+1)))*self.eta + 0.001)
+        self.eta = (3/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1.5/(1+np.exp(-2*(max(self.h(xt))*100+1)))*self.eta + 0.001)
 
         #self.eta = (0.5/(1+np.exp(-1*(max(self.h(xt))*100+0.5))))
 
@@ -638,7 +640,7 @@ class SafeLogBarrierOptimizer:
 
 # @dataclass
 class FhFunction:
-    horizon: int = 20
+    horizon: int = 40
     sample_time: float = 0.1
     obstacle: np.array = [(500., 500., 50.)]
     obs_x_pos: float = 500.
@@ -663,8 +665,9 @@ class FhFunction:
     closest_points_field_2: np.array = None
     closest_points_field_3: np.array = None
 
-    def __init__(self, ok_distance):
+    def __init__(self, ok_distance,horizon):
         self.ok_distance = ok_distance
+        self.horizon = horizon
 
     def move_obstacle(self,x,y):
         self.obs_x_pos += x
@@ -870,7 +873,7 @@ class FhFunction:
 # @dataclass
 class Simulation:
     d: float = 3
-    m: float = 20 # needs to same value as horizon
+    m: float = 40 # needs to same value as horizon
     x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
     M0: float = 0.5 / d
@@ -923,6 +926,7 @@ class Simulation:
         print("init simulation")
         self.myFhFunctions = FhFunction(
             ok_distance = self.ok_distance,
+            horizon=self.m
         )
         self.my_oracle = Oracle(
             f = self.myFhFunctions.f,
@@ -942,6 +946,7 @@ class Simulation:
             x0 = self.x00,
             M0 = self.M0,
             Ms = self.Ms,
+            horizon=self.m,
             sigma = self.my_oracle.sigma,
             hat_sigma = self.my_oracle.hat_sigma,
             init_std = self.init_std,
