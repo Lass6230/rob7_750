@@ -27,7 +27,7 @@ class SafeRlNode(Node):
 
         self.goal_counter = 0
         self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
-        self.big_room_goals_ = [[12.5, -5 , 0.0],[12.5,5, 0.0],[3.0,5,0.0],[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
+        self.big_room_goals_ = [[10.5, -3 , 0.0],[12.5,5, 0.0],[3.0,5,0.0],[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
         self.small_room_goals_ = [[],[]]
         buffer_size = 5
         self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
@@ -58,9 +58,9 @@ class SafeRlNode(Node):
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
         #self.goal = [10.0,0.0, 0.0]
         # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
-        # self.goal = self.big_room_goals_[self.goal_counter]
-        # self.goals = self.big_room_goals_
-        self.goal = [0.0,4.3, 0.0]
+        self.goal = self.big_room_goals_[self.goal_counter]
+        self.goals = self.big_room_goals_
+        self.goal = [0.5,3.0, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
