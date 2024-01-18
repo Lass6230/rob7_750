@@ -58,9 +58,9 @@ class SafeRlNode(Node):
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
         #self.goal = [10.0,0.0, 0.0]
         # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
-        self.goal = self.big_room_goals_[self.goal_counter]
-        self.goals = self.big_room_goals_
-        
+        # self.goal = self.big_room_goals_[self.goal_counter]
+        # self.goals = self.big_room_goals_
+        self.goal = [0.0,2.0, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
@@ -75,7 +75,7 @@ class SafeRlNode(Node):
         self.subscription  # prevent unused variable warning
 
         self.count = 0
-        # self.goal = [2.0,0.0, 0.0]
+        
 
         # self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel_test",self.cmd_vel_tester,10)
         # self.cmd_vel_sub
@@ -118,10 +118,10 @@ class SafeRlNode(Node):
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
-            self.goal_counter += 1
-            if self.goal_counter < len(self.goals):
-                self.goal = self.goals[self.goal_counter]
-                self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
+            # self.goal_counter += 1
+            # if self.goal_counter < len(self.goals):
+            #     self.goal = self.goals[self.goal_counter]
+            #     self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
             # self.goal = [np.random.random_integers(0,6), np.random.random_integers(-3,1), np.random.random_integers(-3.14,3.14)]
             # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
             self.cir_buffer_x_vel.clear()
