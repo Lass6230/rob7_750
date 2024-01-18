@@ -125,9 +125,9 @@ class SafeLogBarrierOptimizer:
     """
     This class allows to run LB-SGD optimization procedure given the oracle for the objective f and constraint h. 
     """
-    x_array_last = [[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0]]
-    sample_time: float = 0.15
-    horizon: int = 10
+    x_array_last = [[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0],[0.0,0.0,0.0]]
+    sample_time: float = 0.25
+    horizon: int = 20
     x_last = None
     u_last = [0.0,0.0,0.0]
     dbLast = np.array([0.01,0.01,0.01])
@@ -222,7 +222,7 @@ class SafeLogBarrierOptimizer:
         gamma = min(1. / step_norm * np.min(alphas / ( 2 * L_dirs +  alphas_reg**0.5 * self.Ms**0.5)), 
                     1. / M2 )
         
-        print("gamma", gamma)
+        # print("gamma", gamma)
         return gamma
 
     def dB_estimator(self):
@@ -240,7 +240,7 @@ class SafeLogBarrierOptimizer:
         
         self.correctDirection()
 
-        print("COREEECT", self.correction_factor)
+        # print("COREEECT", self.correction_factor)
 
         dB = df_e + self.correction_factor*self.eta * jacobian.T.dot(denominators)
         #dB = df_e + self.eta * jacobian.T.dot(denominators)
@@ -255,8 +255,8 @@ class SafeLogBarrierOptimizer:
         if dB[2]  < 0.0:
             dB[2] = self.dbLast[2]        elf.st
         self.dbLast = dB"""
-        print("jacobian", jacobian.T.dot(denominators))
-        print("DB", dB)
+        # print("jacobian", jacobian.T.dot(denominators))
+        # print("DB", dB)
         return dB
     
     def barrier_SGD(self):
@@ -375,7 +375,7 @@ class SafeLogBarrierOptimizer:
 
 
     def run_previous_model(self):
-        print("online traning on previouss online traninged mode stuff :P")
+        # print("online traning on previouss online traninged mode stuff :P")
         
         # load np.array, that are our "model"
         pre_xt = np.load("runs.npy")
@@ -427,7 +427,7 @@ class SafeLogBarrierOptimizer:
         self.obstacle_list = x_obstacle
         #print(x_total)
         self.constraints_total = constraints_total
-        print('LB_SGD runs finished')
+        # print('LB_SGD runs finished')
 
         return x_last
     
@@ -484,7 +484,7 @@ class SafeLogBarrierOptimizer:
         self.obstacle_list = x_obstacle
         print(x_total)
         self.constraints_total = constraints_total
-        print('LB_SGD runs finished')
+        # print('LB_SGD runs finished')
 
         return x_last
     
@@ -574,7 +574,7 @@ class SafeLogBarrierOptimizer:
         self.cmd_vel = ut[0]
         self.x_array_last = xt
         self.x_array_last.pop(0)
-        print("x_last_array",self.x_array_last)
+        # print("x_last_array",self.x_array_last)
 
         #print("xt", xt)
         # Tk += 1
@@ -612,7 +612,7 @@ class SafeLogBarrierOptimizer:
             if self.eta <= 0.00000000000001:
                 self.eta = 0.00000000000001"""
         
-        self.eta = (2/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 0.5/(1+np.exp(-2*(max(self.h(xt))*100+1)))*self.eta + 0.001)
+        self.eta = (7/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1.5/(1+np.exp(-2*(max(self.h(xt))*100+1)))*self.eta + 0.001)
 
         #self.eta = (0.5/(1+np.exp(-1*(max(self.h(xt))*100+0.5))))
 
@@ -628,7 +628,7 @@ class SafeLogBarrierOptimizer:
         #print("IS i work?",4/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1/(1+np.exp(-1*(max(self.h(xt))*100+0.5)))*self.eta+0.0001)
 
 
-        print("WE ETA SPAGETT TONIGHT", self.eta)
+        # print("WE ETA SPAGETT TONIGHT", self.eta)
 
         self.previous_time = time()
         return xt[1]#x_trajectory, gamma_trajectory,  constraints_trajectory, x_last, Tk
@@ -638,7 +638,7 @@ class SafeLogBarrierOptimizer:
 
 # @dataclass
 class FhFunction:
-    horizon: int = 10
+    horizon: int = 20
     sample_time: float = 0.1
     obstacle: np.array = [(500., 500., 50.)]
     obs_x_pos: float = 500.
@@ -703,7 +703,7 @@ class FhFunction:
                     length_to_obs_1 = [0.0]
                     for point in closest_obstacle:
                         length_to_obs_1.append(1 - np.linalg.norm(np.array(point) - np.array(x[i])[:2])) 
-                    length_to_obs_h.append(0.1*(sum(length_to_obs_1)/len(length_to_obs_1)))
+                    length_to_obs_h.append(0.01*(sum(length_to_obs_1)/len(length_to_obs_1)))
             # if len(cl_obs_1) != 0:
             #     for point in cl_obs_2:
             #         length_to_obs_2.append(1 - np.linalg.norm(np.array(point) - np.array(x[0])[:2]))
@@ -828,7 +828,7 @@ class FhFunction:
         # return np.array([0.0,0.0,0.0])    
 
     def f(self, x):
-        print("x_array: ",x)
+        # print("x_array: ",x)
 
         lin_factor = 0.015
         lin_factor_y= 0.015
@@ -870,7 +870,7 @@ class FhFunction:
 # @dataclass
 class Simulation:
     d: float = 3
-    m: float = 10 # needs to same value as horizon
+    m: float = 20 # needs to same value as horizon
     x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
     M0: float = 0.5 / d

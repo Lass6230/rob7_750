@@ -27,7 +27,7 @@ class SafeRlNode(Node):
 
         self.goal_counter = 0
         self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
-        self.big_room_goals_ = [[13.5, -6 , 0.0],[13.5,6, 0.0],[2.0,6,0.0],[13.5, -6,0.0],[2.0,-6,0.0],[2.0,0.0,0.0],[13.5,6,0.0],[2.0,-6,0.0]]
+        self.big_room_goals_ = [[12.5, -5 , 0.0],[12.5,5, 0.0],[3.0,5,0.0],[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
         self.small_room_goals_ = [[],[]]
         buffer_size = 5
         self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
@@ -54,7 +54,7 @@ class SafeRlNode(Node):
         self.from_frame = "odom"
         
         
-        self.actccepted_distance = 0.3
+        self.actccepted_distance = 0.5
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
         #self.goal = [10.0,0.0, 0.0]
         # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
@@ -90,7 +90,7 @@ class SafeRlNode(Node):
         self.publish_cmd_vel(x_vel,y_vel,rot_vel)
 
     def sensor_callback(self, msg):
-        print("lidar points: ", len(msg.ranges))
+        # print("lidar points: ", len(msg.ranges))
         x,y,rot = self.location()
         
         # self.get_logger().info('Number of points: "%i"' % len(msg.ranges))
@@ -118,10 +118,10 @@ class SafeRlNode(Node):
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
-            # self.goal_counter += 1
-            # if self.goal_counter < len(self.goals):
-            #     self.goal = self.goals[self.goal_counter]
-            #     self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
+            self.goal_counter += 1
+            if self.goal_counter < len(self.goals):
+                self.goal = self.goals[self.goal_counter]
+                self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
             # self.goal = [np.random.random_integers(0,6), np.random.random_integers(-3,1), np.random.random_integers(-3.14,3.14)]
             # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
             self.cir_buffer_x_vel.clear()
@@ -157,16 +157,18 @@ class SafeRlNode(Node):
             rot_vel= (sum(self.cir_buffer_rot_vel)/len(self.cir_buffer_rot_vel))
             self.publish_cmd_vel(x_vel,y_vel,rot_vel)
         
-        close, cl1, cl2, cl3 = self.safe_rl.closest_arrays_to_zero(flattened_obs, 5,x,y, flattened_obs_zone_1 ,flattened_obs_zone_2, flattened_obs_zone_3)
+        close, cl1, cl2, cl3 = self.safe_rl.closest_arrays_to_zero(flattened_obs, 25,x,y, flattened_obs_zone_1 ,flattened_obs_zone_2, flattened_obs_zone_3)
 
         # print("WOW THATS ALOT OF ARRAY",close)
 
         # remember that plotting is to slow, we will then miss laserscan
+
         self.ax.clear()
         self.ax.scatter(y,x,color='red')
         self.ax.scatter(obstacles_y,obstacles_x)
         
         # Plot each point from the 'close' arrays
+
         for point in cl1:
             self.ax.scatter(point[1], point[0], color='magenta')  # Assuming each point in 'close' is [y, x]
         for point in cl2:
@@ -199,10 +201,10 @@ class SafeRlNode(Node):
                 self.from_frame,
                 self.target_frame,
                 rclpy.time.Time())
-            self.get_logger().info(
-                        f'got transform {self.target_frame} to {self.target_frame}')
-            self.get_logger().info('x: "%f"' % t.transform.translation.x)
-            self.get_logger().info('y: "%f"' % t.transform.translation.y)
+            # self.get_logger().info(
+            #             f'got transform {self.target_frame} to {self.target_frame}')
+            # self.get_logger().info('x: "%f"' % t.transform.translation.x)
+            # self.get_logger().info('y: "%f"' % t.transform.translation.y)
             
             orientation_list = [t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w]
 
@@ -210,12 +212,12 @@ class SafeRlNode(Node):
 
             self.pose_yaw = yaw
 
-            self.get_logger().info('z_rot: "%f"' % yaw)
-            self.get_logger().info('GOAL: "%s"' % str(self.goal))
+            # self.get_logger().info('z_rot: "%f"' % yaw)
+            # self.get_logger().info('GOAL: "%s"' % str(self.goal))
             return t.transform.translation.x, t.transform.translation.y, yaw
         except TransformException as ex:
-            self.get_logger().info(
-                f'Could not transform {self.target_frame} to {self.target_frame}: {ex}')
+            # self.get_logger().info(
+            #     f'Could not transform {self.target_frame} to {self.target_frame}: {ex}')
             return 0.0, 0.0, 0.0
     
     
