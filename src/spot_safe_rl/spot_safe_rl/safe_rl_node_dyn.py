@@ -27,7 +27,7 @@ class SafeRlNode(Node):
 
         self.goal_counter = 0
         self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
-        self.big_room_goals_ = [[10.5, -3 , 0.0],[12.5,5, 0.0],[3.0,5,0.0],[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
+        self.big_room_goals_ = [[12.5, -5 , 0.0],[12.5,5, 0.0],[3.0,5,0.0],[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
         self.small_room_goals_ = [[],[]]
         buffer_size = 5
         self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
@@ -54,13 +54,13 @@ class SafeRlNode(Node):
         self.from_frame = "odom"
         
         
-        self.actccepted_distance = 0.5
+        self.actccepted_distance = 1
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
         #self.goal = [10.0,0.0, 0.0]
-        # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
+        #self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
         self.goal = self.big_room_goals_[self.goal_counter]
         self.goals = self.big_room_goals_
-        self.goal = [0.5,3.0, 0.0]
+        #self.goal = [0.5,3.0, 0.0]
         self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
 
         qos_policy = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT,
@@ -118,11 +118,11 @@ class SafeRlNode(Node):
         if self.goalChecker(x,y):
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
-            # self.goal_counter += 1
-            # if self.goal_counter < len(self.goals):
-            #     self.goal = self.goals[self.goal_counter]
-            #     self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
-            # self.goal = [np.random.random_integers(0,6), np.random.random_integers(-3,1), np.random.random_integers(-3.14,3.14)]
+            self.goal_counter += 1
+            if self.goal_counter < len(self.goals):
+                 self.goal = self.goals[self.goal_counter]
+                 self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
+            #self.goal = [np.random.random_integers(0,6), np.random.random_integers(-3,1), np.random.random_integers(-3.14,3.14)]
             # self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
             self.cir_buffer_x_vel.clear()
             self.cir_buffer_y_vel.clear()
