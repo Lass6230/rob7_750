@@ -127,7 +127,7 @@ class SafeLogBarrierOptimizer:
     """
     
     sample_time: float = 0.25
-    horizon: int = 20
+    horizon: int = 20# ddd
     x_array_last = np.zeros((horizon,3))
     x_last = None
     u_last = [0.0,0.0,0.0]
@@ -571,7 +571,7 @@ class SafeLogBarrierOptimizer:
             if self.eta <= 0.00000000000001:
                 self.eta = 0.00000000000001"""
         
-        self.eta = (5/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 1.5/(1+np.exp(-2*(max(self.h(xt))*100+1)))*self.eta + 0.001)
+        self.eta = (7/(1+np.exp(-5*(max(self.h(xt))*100+0.5)))*self.eta + 2/(1+np.exp(-2*(max(self.h(xt))*100+1)))*self.eta + 0.001)
 
         #self.eta = (0.5/(1+np.exp(-1*(max(self.h(xt))*100+0.5))))
 
@@ -597,7 +597,7 @@ class SafeLogBarrierOptimizer:
 
 # @dataclass
 class FhFunction:
-    horizon: int = 20
+    horizon: int = 20 # ddd
     sample_time: float = 0.1
     obstacle: np.array = [(500., 500., 50.)]
     obs_x_pos: float = 500.
@@ -688,10 +688,10 @@ class FhFunction:
             self.angular_vel = angle_diff
       
 
-
+            #distance_gain = 1*(np.exp(-(np.linalg.norm([self.robot_goal[0] - x[i][0], self.robot_goal[1] - x[i][1]])))) + 1
         
         
-            distance_to_target += np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[i][0]) , lin_factor_y*np.linalg.norm(self.robot_goal[1] - x[i][1]), ang_factor*self.angular_vel])
+            distance_to_target += np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[i][0]) , lin_factor_y*np.linalg.norm(self.robot_goal[1] - x[i][1]),ang_factor*self.angular_vel])
          
         self.linear_vel = distance_to_target 
   
@@ -712,7 +712,7 @@ class FhFunction:
 # @dataclass
 class Simulation:
     d: float = 3
-    m: float = 20# needs to same value as horizon
+    m: float = 20 # needs to same value as horizon ddd
     x00: np.array = np.array([0.0, 0.0])  ####### change this
     x0: np.array = None
     M0: float = 0.5 / d

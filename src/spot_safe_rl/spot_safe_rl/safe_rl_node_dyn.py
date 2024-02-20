@@ -54,7 +54,7 @@ class SafeRlNode(Node):
         self.from_frame = "odom"
         
         
-        self.actccepted_distance = 1
+        self.actccepted_distance = 3
         self.safe_rl = LB.Simulation(ok_distance = self.actccepted_distance)
         #self.goal = [10.0,0.0, 0.0]
         #self.safe_rl.setGoal(self.goal[0],self.goal[1], self.goal[2])
@@ -136,18 +136,18 @@ class SafeRlNode(Node):
             # x_vel = vel[0]
             # y_vel = vel[1]
             rot_vel = vel[2]
-            if x_vel > 1.0:
-                x_vel = 1.0
-            if y_vel > 1.0:
-                y_vel = 1.0
-            if rot_vel > 1.0:
-                rot_vel = 1.0
-            if x_vel < -1.0:
-                x_vel = -1.0
-            if y_vel < -1.0:
-                y_vel = -1.0
-            if rot_vel < -1.0:
-                rot_vel = -1.0
+            if x_vel > 0.9:
+                x_vel = 0.9
+            if y_vel > 0.9:
+                y_vel = 0.9
+            if rot_vel > 0.9:
+                rot_vel = 0.9
+            if x_vel < -0.9:
+                x_vel = -0.9
+            if y_vel < -0.9:
+                y_vel = -0.9
+            if rot_vel < -0.9:
+                rot_vel = -0.9
 
             self.cir_buffer_x_vel.append(x_vel)
             self.cir_buffer_y_vel.append(y_vel)
