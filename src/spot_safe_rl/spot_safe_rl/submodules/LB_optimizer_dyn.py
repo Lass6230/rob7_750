@@ -688,12 +688,12 @@ class FhFunction:
             self.angular_vel = angle_diff
       
 
-            #distance_gain = 1*(np.exp(-(np.linalg.norm([self.robot_goal[0] - x[i][0], self.robot_goal[1] - x[i][1]])))) + 1
+            distance_gain = 1*(np.exp(-(np.linalg.norm([self.robot_goal[0] - x[i][0], self.robot_goal[1] - x[i][1]])))) + 1
         
         
             distance_to_target += np.array([lin_factor*np.linalg.norm(self.robot_goal[0] - x[i][0]) , lin_factor_y*np.linalg.norm(self.robot_goal[1] - x[i][1]),ang_factor*self.angular_vel])
          
-        self.linear_vel = distance_to_target 
+        self.linear_vel = distance_gain*distance_to_target
   
 
         return distance_to_target
