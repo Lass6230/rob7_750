@@ -29,7 +29,7 @@ class SafeRlNode(Node):
 
         self.goal_counter = 0
         self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
-        self.big_room_goals_ = [[12.5, -6 , 0.0],[12.5,5, 0.0]]#,[3.0,5,0.0],[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
+        self.big_room_goals_ = [[12.5, -6 , 0.0],[3.0,5,0.0],[12.5,1, 0.0],[3.0,-6,0.0]]#[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
         self.small_room_goals_ = [[],[]]
         buffer_size = 5
         self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
@@ -39,7 +39,7 @@ class SafeRlNode(Node):
         self.trajectory_y = []
         self.whole_trajectory_x = []
         self.whole_trajectory_y = []
-
+        self.amount_of_trajectories = 0
 
         self.cmd_vel_publisher_ = self.create_publisher(Twist, 'cmd_vel', 10)
 
@@ -217,7 +217,7 @@ class SafeRlNode(Node):
             self.trajectory_x.append(x)
             self.trajectory_y.append(y)
             self.whole_trajectory_x.append(x)
-            self.whole_trajectory_x.append(y)
+            self.whole_trajectory_y.append(y)
 
             return x, y, yaw
         except TransformException as ex:
@@ -247,7 +247,7 @@ class SafeRlNode(Node):
             plt.title('Robot Trajectory')
 
             # Specify the directory to save the plot
-            save_dir = '/home/dadi/p7-project/src/Experiments'  # Change this to the desired directory
+            save_dir = '/home/robotlab/p7_ws/src/Experiments_trajectory'  # Change this to the desired directory
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
 
@@ -260,9 +260,11 @@ class SafeRlNode(Node):
 
             print("This is how many goals there are", len(self.goals))
 
-            if self.goal_counter < len(self.goals) - 1:
+            print("are we the samex,x,y",len(self.whole_trajectory_x), len(self.whole_trajectory_y))
+
+            if self.amount_of_trajectories < len(self.goals):
                 # Update the goal and clear the trajectory
-                self.goal_counter += 1
+                self.amount_of_trajectories += 1
                 self.goal = self.goals[self.goal_counter]
                 self.safe_rl.setGoal(self.goal[0], self.goal[1], self.goal[2])
                 self.trajectory_x.clear()
@@ -270,7 +272,7 @@ class SafeRlNode(Node):
 
                 print("this is what goal we are at", self.goal_counter)
 
-            if self.goal_counter == len(self.goals) - 1:
+            if self.amount_of_trajectories == len(self.goals):
                 plt.plot(self.whole_trajectory_x, self.whole_trajectory_y, label='Robot Trajectory')
                 plt.scatter(self.whole_trajectory_x[0], self.whole_trajectory_y[0], color='green', label='Start Position')
                 plt.scatter(x, y, color='red', label='Goal position')
