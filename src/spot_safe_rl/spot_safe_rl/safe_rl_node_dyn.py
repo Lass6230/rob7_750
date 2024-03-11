@@ -1,5 +1,7 @@
 import rclpy
 from rclpy.node import Node
+import os
+import sys
 
 from std_msgs.msg import String
 from .submodules import LB_optimizer_dyn as LB
@@ -27,13 +29,16 @@ class SafeRlNode(Node):
 
         self.goal_counter = 0
         self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
-        self.big_room_goals_ = [[12.5, -6 , 0.0],[12.5,5, 0.0],[3.0,5,0.0],[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
+        self.big_room_goals_ = [[12.5, -6 , 0.0],[12.5,5, 0.0]]#,[3.0,5,0.0],[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
         self.small_room_goals_ = [[],[]]
         buffer_size = 5
         self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
         self.cir_buffer_y_vel = collections.deque(maxlen=buffer_size)
         self.cir_buffer_rot_vel = collections.deque(maxlen=buffer_size)
-
+        self.trajectory_x = []
+        self.trajectory_y = []
+        self.whole_trajectory_x = []
+        self.whole_trajectory_y = []
 
 
         self.cmd_vel_publisher_ = self.create_publisher(Twist, 'cmd_vel', 10)
@@ -190,34 +195,32 @@ class SafeRlNode(Node):
         
 
     def location(self):
-        # msg = String()
-        # msg.data = 'Hello World: %d' % self.i
-        # # self.publisher_.publish(msg)
-        # self.get_logger().info('not Publishing: "%s"' % msg.data)
-        # self.i += 1
-
         try:
             t = self.tf_buffer.lookup_transform(
                 self.from_frame,
                 self.target_frame,
                 rclpy.time.Time())
-            # self.get_logger().info(
-            #             f'got transform {self.target_frame} to {self.target_frame}')
-            # self.get_logger().info('x: "%f"' % t.transform.translation.x)
-            # self.get_logger().info('y: "%f"' % t.transform.translation.y)
-            
-            orientation_list = [t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w]
+
+            orientation_list = [
+                t.transform.rotation.x,
+                t.transform.rotation.y,
+                t.transform.rotation.z,
+                t.transform.rotation.w
+            ]
 
             (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
 
             self.pose_yaw = yaw
 
-            # self.get_logger().info('z_rot: "%f"' % yaw)
-            # self.get_logger().info('GOAL: "%s"' % str(self.goal))
-            return t.transform.translation.x, t.transform.translation.y, yaw
+            x, y = t.transform.translation.x, t.transform.translation.y
+
+            self.trajectory_x.append(x)
+            self.trajectory_y.append(y)
+            self.whole_trajectory_x.append(x)
+            self.whole_trajectory_x.append(y)
+
+            return x, y, yaw
         except TransformException as ex:
-            # self.get_logger().info(
-            #     f'Could not transform {self.target_frame} to {self.target_frame}: {ex}')
             return 0.0, 0.0, 0.0
     
     
@@ -231,16 +234,58 @@ class SafeRlNode(Node):
         data.angular.z = z_rot_vel
         self.cmd_vel_publisher_.publish(data)
     
-    def goalChecker(self,x,y):
-        distance=math.sqrt(pow(self.goal[0]-x,2)+pow(self.goal[1]-y,2))
+    def goalChecker(self, x, y):
+        distance = math.sqrt(pow(self.goal[0] - x, 2) + pow(self.goal[1] - y, 2))
         if distance < self.actccepted_distance:
+            # Plot the trajectory with red dot at the current robot position
+            plt.plot(self.trajectory_x, self.trajectory_y, label='Robot Trajectory')
+            plt.scatter(self.trajectory_x[0], self.trajectory_y[0], color='green', label='Start Position')
+            plt.scatter(x, y, color='red', label='Goal position')
+            plt.legend()
+            plt.xlabel('X')
+            plt.ylabel('Y')
+            plt.title('Robot Trajectory')
+
+            # Specify the directory to save the plot
+            save_dir = '/home/dadi/p7-project/src/Experiments'  # Change this to the desired directory
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+
+            # Save the plot as an image file
+            save_path = os.path.join(save_dir, f'robot_trajectory_goal_{self.goal_counter}.png')
+            plt.savefig(save_path)
+
+            # Clear the plot for the next iteration
+            plt.clf()
+
+            print("This is how many goals there are", len(self.goals))
+
+            if self.goal_counter < len(self.goals) - 1:
+                # Update the goal and clear the trajectory
+                self.goal_counter += 1
+                self.goal = self.goals[self.goal_counter]
+                self.safe_rl.setGoal(self.goal[0], self.goal[1], self.goal[2])
+                self.trajectory_x.clear()
+                self.trajectory_y.clear()
+
+                print("this is what goal we are at", self.goal_counter)
+
+            if self.goal_counter == len(self.goals) - 1:
+                plt.plot(self.whole_trajectory_x, self.whole_trajectory_y, label='Robot Trajectory')
+                plt.scatter(self.whole_trajectory_x[0], self.whole_trajectory_y[0], color='green', label='Start Position')
+                plt.scatter(x, y, color='red', label='Goal position')
+                plt.legend()
+                plt.xlabel('X')
+                plt.ylabel('Y')
+                plt.title('Robot Trajectory')
+                # Save the plot as an image file
+                save_path = os.path.join(save_dir, f'whole_robot_trajectory_goal.png')
+                plt.savefig(save_path)
+
             return True
         else:
             return False
         
-        
-        # return self.safe_rl.reachedGoal(pos=[x,y],ok_distance=self.actccepted_distance)
-
 def main(args=None):
     rclpy.init(args=args)
 
