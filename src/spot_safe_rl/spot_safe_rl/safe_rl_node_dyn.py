@@ -8,6 +8,7 @@ from .submodules import LB_optimizer_dyn as LB
 
 from sensor_msgs.msg import LaserScan
 import collections
+import time
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -28,6 +29,7 @@ class SafeRlNode(Node):
         super().__init__('safe_rl_node')
 
         self.goal_counter = 0
+        self.start_time = time.time()
         self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
         self.big_room_goals_ = [[12.5, -6 , 0.0],[3.0,5,0.0],[12.5,1, 0.0],[3.0,-6,0.0]]#[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
         self.small_room_goals_ = [[],[]]
@@ -40,6 +42,10 @@ class SafeRlNode(Node):
         self.whole_trajectory_x = []
         self.whole_trajectory_y = []
         self.amount_of_trajectories = 0
+        self.vel_data = []
+        self.fh0_data = []
+        self.fh1_data = []
+        self.elapsed_time_data = []
 
         self.cmd_vel_publisher_ = self.create_publisher(Twist, 'cmd_vel', 10)
 
@@ -102,6 +108,7 @@ class SafeRlNode(Node):
         obstacles_x = []
         obstacles_y = []
         obstacles = [()]
+        print("hello")
         # obstacles_x.append(math.cos(msg.angle_min+(1*msg.angle_increment))*msg.ranges[0])
         # self.get_logger().info('X: "%f"' % obstacles_x[0])
         # self.get_logger().info('X: "%f" ' % x)
@@ -136,6 +143,18 @@ class SafeRlNode(Node):
             self.safe_rl.setPos(x=x,y=y,rot=rot)
             self.safe_rl.update()
             vel = self.safe_rl.getCmdVel()
+            fh = self.safe_rl.getFandH()
+            print("this is he h-value", fh[1] )
+            elapsed_time = time.time() - self.start_time
+            self.vel_data.append(vel)  # Assuming vel is a list
+            self.fh0_data.append(fh[0])
+            self.fh1_data.append(fh[1])
+            self.elapsed_time_data.append(elapsed_time)
+
+            # Update plot
+            self.update_plot()
+
+            
             x_vel = vel[0]*math.cos(-rot)-vel[1]*math.sin(-rot)
             y_vel = vel[1]*math.cos(-rot)+vel[0]*math.sin(-rot)
             # x_vel = vel[0]
@@ -153,6 +172,8 @@ class SafeRlNode(Node):
                 y_vel = -0.9
             if rot_vel < -0.9:
                 rot_vel = -0.9
+
+
 
             self.cir_buffer_x_vel.append(x_vel)
             self.cir_buffer_y_vel.append(y_vel)
@@ -192,6 +213,30 @@ class SafeRlNode(Node):
         # self.ax.scatter(y,x,color='red')
         # self.ax.scatter(obstacles_y,obstacles_x)
         # plt.pause(0.005)
+
+
+    def update_plot(self):
+        plt.clf()  # Clear the plot for redrawing
+
+        # Plot elapsed time vs vel, fh0, fh1
+        #plt.plot(self.elapsed_time_data, self.vel_data, label='Velocity')
+        plt.plot(self.elapsed_time_data, self.fh0_data, label='fh0')
+        plt.plot(self.elapsed_time_data, self.fh1_data, label='fh1')
+
+        # Set labels and title
+        plt.xlabel('Elapsed Time (s)')
+        plt.ylabel('Values')
+        plt.title('Real-time Data Plot')
+
+        # Add legend
+        plt.legend()
+
+        # Pause for a short time to avoid overwhelming the plot
+        plt.pause(0.05)
+
+        # Display plot
+        plt.draw()
+    
         
 
     def location(self):

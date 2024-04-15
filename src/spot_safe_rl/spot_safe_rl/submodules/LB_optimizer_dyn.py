@@ -119,6 +119,12 @@ class Oracle:
                 (np.log(1. / self.delta))**0.5 * self.sigma / self.n**0.5 / 2. * np.ones(self.m)
             #print("alphas from oracle", self.alphas)
 
+    def record_f_and_h(self, x: np.array) -> None:
+
+        f_recorded  = self.f(x) 
+        h_recorded  = self.h(x) 
+
+        return f_recorded, h_recorded  
 
 @dataclass
 class SafeLogBarrierOptimizer:
@@ -133,6 +139,8 @@ class SafeLogBarrierOptimizer:
     u_last = [0.0,0.0,0.0]
     dbLast = np.array([0.01,0.01,0.01])
     cmd_vel = None
+    f_recorded = None
+    h_recorded = None
     obstacle_list: list = None
     obstacle: np.array = None
     obs_pos_x: float = 50.0
@@ -513,7 +521,8 @@ class SafeLogBarrierOptimizer:
             
         #print("ORacle Xo", xt)
         self.oracle.sample(self.x_array_last) # maybe change to self.u_last 
-        
+        self.f_recorded, self.h_recorded = self.oracle.record_f_and_h(self.x_array_last)
+
         self.step = self.dB_estimator()
         step_norm = np.linalg.norm(self.step)
         #print("step_norm", step_norm)
@@ -891,6 +900,14 @@ class Simulation:
     def getCmdVel(self):
         return self.opt.cmd_vel[0], self.opt.cmd_vel[1], self.opt.cmd_vel[2]
 
+    def getFandH(self):
+        return self.opt.f_recorded[0], self.opt.h_recorded[0]
+    
+    def getF(self):
+        return self.opt.f_recorded[0] 
+    
+    def getH(self):
+        return  self.opt.h_recorded[0]
 
     def update(self):
         xt = self.opt.update()
