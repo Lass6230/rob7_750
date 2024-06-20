@@ -31,7 +31,7 @@ class SafeRlNode(Node):
         self.goal_counter = 0
         self.start_time = time.time()
         self.medium_room_goals_ = [[9.5,4.5],[9.5,-3.5],[0.0,-3.5],[9.5,3.5]]
-        self.big_room_goals_ = [[12.5, -6 , 0.0],[3.0,5,0.0],[12.5,1, 0.0],[3.0,-6,0.0]]#[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
+        self.big_room_goals_ = [[7, 6 , 0.0],[11.0,0,0.0],[6.5,-7, 0.0],[2,0,0.0]]#[12.5, -5,0.0],[3.0,-6,0.0],[3.0,0.0,0.0],[12.5,6,0.0],[3.0,-5,0.0]]
         self.small_room_goals_ = [[],[]]
         buffer_size = 5
         self.cir_buffer_x_vel = collections.deque(maxlen=buffer_size)
@@ -45,13 +45,20 @@ class SafeRlNode(Node):
         self.vel_data = []
         self.fh0_data = []
         self.fh1_data = []
+        self.xt_log_data = []
         self.elapsed_time_data = []
+        self.whole_vel_data = []
+        self.whole_fh0_data = []
+        self.whole_fh1_data = []
+        self.whole_xt_log_data = []
+        self.amount_of_trajectories2 = 0
+        
 
         self.cmd_vel_publisher_ = self.create_publisher(Twist, 'cmd_vel', 10)
 
         grid_size = (100, 100)
         
-        self.fig, self.ax = plt.subplots()
+       
         self.G = nx.grid_2d_graph(*grid_size)
 
 
@@ -108,7 +115,7 @@ class SafeRlNode(Node):
         obstacles_x = []
         obstacles_y = []
         obstacles = [()]
-        print("hello")
+        
         # obstacles_x.append(math.cos(msg.angle_min+(1*msg.angle_increment))*msg.ranges[0])
         # self.get_logger().info('X: "%f"' % obstacles_x[0])
         # self.get_logger().info('X: "%f" ' % x)
@@ -128,6 +135,7 @@ class SafeRlNode(Node):
         flattened_obs = [item for item in obstacles if isinstance(item, list) and item != [float('inf'), float('inf')] and item !=[float('-inf'), float('-inf')]and item != [float('-inf'), float('inf')]and item != [float('inf'), float('-inf')]]
         
         if self.goalChecker(x,y):
+            self.update_plot(x,y)
             self.publish_cmd_vel(0.0,0.0,0.0)
             self.get_logger().info('Goal Reached')
             self.goal_counter += 1
@@ -143,16 +151,23 @@ class SafeRlNode(Node):
             self.safe_rl.setPos(x=x,y=y,rot=rot)
             self.safe_rl.update()
             vel = self.safe_rl.getCmdVel()
+            
+            xt_log = self.safe_rl.getXtLog()
             fh = self.safe_rl.getFandH()
-            print("this is he h-value", fh[1] )
+            
             elapsed_time = time.time() - self.start_time
+            self.xt_log_data.append(xt_log)
             self.vel_data.append(vel)  # Assuming vel is a list
+            
             self.fh0_data.append(fh[0])
             self.fh1_data.append(fh[1])
+    
             self.elapsed_time_data.append(elapsed_time)
 
             # Update plot
-            self.update_plot()
+            self.update_plot(x,y)
+
+            
 
             
             x_vel = vel[0]*math.cos(-rot)-vel[1]*math.sin(-rot)
@@ -215,29 +230,71 @@ class SafeRlNode(Node):
         # plt.pause(0.005)
 
 
-    def update_plot(self):
-        plt.clf()  # Clear the plot for redrawing
+    def update_plot(self,x,y):
+            # Clear the plot for redrawing
+           
 
-        # Plot elapsed time vs vel, fh0, fh1
-        #plt.plot(self.elapsed_time_data, self.vel_data, label='Velocity')
-        plt.plot(self.elapsed_time_data, self.fh0_data, label='fh0')
-        plt.plot(self.elapsed_time_data, self.fh1_data, label='fh1')
+            # Plot elapsed time vs vel
+            fig1, ax1 = plt.subplots()
+            ax1.plot(self.elapsed_time_data, [vel_tuple[0] for vel_tuple in self.vel_data], color='blue', label='x-velocity')
+            ax1.plot(self.elapsed_time_data, [vel_tuple[1] for vel_tuple in self.vel_data], color='red', label='y-velocity')
+            ax1.plot(self.elapsed_time_data, [vel_tuple[2] for vel_tuple in self.vel_data], color='green', label='rot-velocity')
+            ax1.set_xlabel('Elapsed Time (s)')
+            ax1.set_ylabel('Velocity')
+            ax1.set_title('Velocity vs Elapsed Time')
+            if not ax1.get_legend():
+                ax1.legend()
 
-        # Set labels and title
-        plt.xlabel('Elapsed Time (s)')
-        plt.ylabel('Values')
-        plt.title('Real-time Data Plot')
+            # Plot elapsed time vs fh0
+            fig2, ax2 = plt.subplots()
+            ax2.plot(self.elapsed_time_data, self.fh0_data, color='blue', label='f-value')
+            ax2.set_xlabel('Elapsed Time (s)')
+            ax2.set_ylabel('f-value')
+            ax2.set_title('f-value vs Elapsed Time')
+            if not ax2.get_legend():
+                ax2.legend()
 
-        # Add legend
-        plt.legend()
+            # Plot elapsed time vs fh1
+            fig3, ax3 = plt.subplots()
+            ax3.plot(self.elapsed_time_data, self.fh1_data, color='green', label='h-value')
+            ax3.set_xlabel('Elapsed Time (s)')
+            ax3.set_ylabel('h-value')
+            ax3.set_title('h-value vs Elapsed Time')
+            if not ax3.get_legend():
+                ax3.legend()
 
-        # Pause for a short time to avoid overwhelming the plot
-        plt.pause(0.05)
+            # Plot elapsed time vs xt_log
+            fig4, ax4 = plt.subplots()
+            ax4.plot(self.elapsed_time_data, [xt_data[0] for xt_data in self.xt_log_data], color='blue', label='next x value')
+            ax4.plot(self.elapsed_time_data, [xt_data[1] for xt_data in self.xt_log_data], color='red', label='next y value')
+            ax4.plot(self.elapsed_time_data, [xt_data[2] for xt_data in self.xt_log_data], color='green', label='next rot value')
+            ax4.set_xlabel('Elapsed Time (s)')
+            ax4.set_ylabel('xt/next location')
+            ax4.set_title('xt vs Elapsed Time')
+            if not ax4.get_legend():
+                ax4.legend()
 
-        # Display plot
-        plt.draw()
-    
-        
+            # Specify the directory to save the plots
+            save_dir = '/home/robotlab/p7_ws/src/Plots'  # Change this to the desired directory
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+
+            distance = math.sqrt(pow(self.goal[0] - x, 2) + pow(self.goal[1] - y, 2))
+            if distance < self.actccepted_distance:
+                fig1.savefig(os.path.join(save_dir, f'velocity_plot_{self.goal_counter}.png'))
+                fig2.savefig(os.path.join(save_dir, f'f_plot_{self.goal_counter}.png'))
+                fig3.savefig(os.path.join(save_dir, f'h-plot_{self.goal_counter}.png'))
+                fig4.savefig(os.path.join(save_dir, f'xt_log_plot_{self.goal_counter}.png'))
+
+            # Close the figures to release resources
+            plt.close(fig1)
+            plt.close(fig2)
+            plt.close(fig3)
+            plt.close(fig4)
+
+            # Pause for a short time to avoid overwhelming the plot
+            plt.pause(0.05)
+
 
     def location(self):
         try:
@@ -281,16 +338,22 @@ class SafeRlNode(Node):
     
     def goalChecker(self, x, y):
         distance = math.sqrt(pow(self.goal[0] - x, 2) + pow(self.goal[1] - y, 2))
-        if distance < self.actccepted_distance:
-            # Plot the trajectory with red dot at the current robot position
-            plt.plot(self.trajectory_x, self.trajectory_y, label='Robot Trajectory')
-            plt.scatter(self.trajectory_x[0], self.trajectory_y[0], color='green', label='Start Position')
-            plt.scatter(x, y, color='red', label='Goal position')
-            plt.legend()
-            plt.xlabel('X')
-            plt.ylabel('Y')
-            plt.title('Robot Trajectory')
+        fig5, ax5 = plt.subplots()
 
+        # Plot the trajectory with red dot at the current robot position
+        ax5.plot(self.trajectory_x, self.trajectory_y, label='Robot Trajectory')
+        ax5.scatter(self.trajectory_x[0], self.trajectory_y[0], color='green', label='Start Position')
+        ax5.scatter(x, y, color='red', label='Goal position')
+        ax5.legend()
+        ax5.set_xlabel('X')
+        ax5.set_ylabel('Y')
+        ax5.set_title('Robot Trajectory')
+
+        
+        if distance < self.actccepted_distance:
+            # Create a new figure and axis for plotting
+            
+            
             # Specify the directory to save the plot
             save_dir = '/home/robotlab/p7_ws/src/Experiments_trajectory'  # Change this to the desired directory
             if not os.path.exists(save_dir):
@@ -301,12 +364,9 @@ class SafeRlNode(Node):
             plt.savefig(save_path)
 
             # Clear the plot for the next iteration
-            plt.clf()
+            
 
-            print("This is how many goals there are", len(self.goals))
-
-            print("are we the samex,x,y",len(self.whole_trajectory_x), len(self.whole_trajectory_y))
-
+            plt.close(fig5)
             if self.amount_of_trajectories < len(self.goals):
                 # Update the goal and clear the trajectory
                 self.amount_of_trajectories += 1
@@ -314,24 +374,35 @@ class SafeRlNode(Node):
                 self.safe_rl.setGoal(self.goal[0], self.goal[1], self.goal[2])
                 self.trajectory_x.clear()
                 self.trajectory_y.clear()
+                
 
                 print("this is what goal we are at", self.goal_counter)
 
             if self.amount_of_trajectories == len(self.goals):
-                plt.plot(self.whole_trajectory_x, self.whole_trajectory_y, label='Robot Trajectory')
-                plt.scatter(self.whole_trajectory_x[0], self.whole_trajectory_y[0], color='green', label='Start Position')
-                plt.scatter(x, y, color='red', label='Goal position')
-                plt.legend()
-                plt.xlabel('X')
-                plt.ylabel('Y')
-                plt.title('Robot Trajectory')
+                
+                # Create a new figure and axis for plotting
+                fig, ax = plt.subplots()
+
+                ax.plot(self.whole_trajectory_x, self.whole_trajectory_y, label='Robot Trajectory')
+                ax.scatter(self.whole_trajectory_x[0], self.whole_trajectory_y[0], color='green', label='Start Position')
+                ax.scatter(x, y, color='red', label='Goal position')
+                ax.legend()
+                ax.set_xlabel('X')
+                ax.set_ylabel('Y')
+                ax.set_title('Robot Trajectory')
+
                 # Save the plot as an image file
                 save_path = os.path.join(save_dir, f'whole_robot_trajectory_goal.png')
                 plt.savefig(save_path)
 
+                # Clear the plot for the next iteration
+                plt.close(fig)
+
             return True
         else:
+            plt.close(fig5)
             return False
+            
         
 def main(args=None):
     rclpy.init(args=args)

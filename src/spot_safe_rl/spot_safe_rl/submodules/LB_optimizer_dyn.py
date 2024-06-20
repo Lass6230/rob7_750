@@ -124,6 +124,17 @@ class Oracle:
         f_recorded  = self.f(x) 
         h_recorded  = self.h(x) 
 
+        with open("f_recorded", 'w') as file:
+        # Write the data to the file
+            file.write("f_recorded:\n")
+            np.savetxt(file, f_recorded, fmt='%s')  # Convert f_recorded to string and write to file
+            
+        with open("h_recorded", 'w') as file:
+        # Write the data to the file
+            file.write("f_recorded:\n")
+            np.savetxt(file, f_recorded, fmt='%s')  # Convert f_recorded to string and write to file
+            
+
         return f_recorded, h_recorded  
 
 @dataclass
@@ -139,6 +150,7 @@ class SafeLogBarrierOptimizer:
     u_last = [0.0,0.0,0.0]
     dbLast = np.array([0.01,0.01,0.01])
     cmd_vel = None
+    xt_log = None
     f_recorded = None
     h_recorded = None
     obstacle_list: list = None
@@ -540,6 +552,7 @@ class SafeLogBarrierOptimizer:
         # xt = self.x_last - gamma * self.step # calculate and update policy
         # self.u_last = ut[0]
         self.cmd_vel = ut[0]
+        self.xt_log = xt[0]
         self.x_array_last = xt
         self.x_array_last.pop(0)
         # print("x_last_array",self.x_array_last)
@@ -899,6 +912,9 @@ class Simulation:
     
     def getCmdVel(self):
         return self.opt.cmd_vel[0], self.opt.cmd_vel[1], self.opt.cmd_vel[2]
+
+    def getXtLog(self):
+        return self.opt.xt_log[0], self.opt.xt_log[1], self.opt.xt_log[2]
 
     def getFandH(self):
         return self.opt.f_recorded[0], self.opt.h_recorded[0]
