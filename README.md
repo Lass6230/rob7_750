@@ -2,14 +2,14 @@
 Rob 7 group 750 semester project
 
 ## Install
-1.     git clone https://github.com/OghuzMadinali/Log-Barrier-Algorithm.git
+1.     git clone https://github.com/Lass6230/rob7_750.git
     
 2.     pip3 install bosdyn-client bosdyn-mission bosdyn-api bosdyn-core
 3.     pip install networkx cvxopt numdifftools transforms3d
 4.     sudo apt install ros-humble-joint-state-publisher-gui ros-humble-xacro
 5.     sudo apt install ros-humble-tf-transformations
 6.     cd rob7_750/src
-7.     git clone -b humble https://github.com/OghuzMadinali/Log-Barrier-Algorithm.git
+7.     git clone -b humble https://github.com/Lass6230/rob7_750.git
 8.     cd ..
 9.     colcon build --symlink-install
     
